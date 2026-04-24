@@ -34,7 +34,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/login')
   }
 
-  const visibleNav = NAV.filter(n => !me || n.roles.includes(me.role))
+  const visibleNav = me ? NAV.filter(n => n.roles.includes(me.role)) : []
 
   return (
     <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-white shadow-sm">
