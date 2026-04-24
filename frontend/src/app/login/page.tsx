@@ -169,10 +169,28 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="label">역할</label>
-              <select className="input" value={role} onChange={e => setRole(e.target.value as 'INTERPRETER' | 'PATIENT')}>
-                <option value="PATIENT">이주민(PATIENT)</option>
-                <option value="INTERPRETER">통번역가(INTERPRETER)</option>
-              </select>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { value: 'PATIENT', label: '이주민', desc: '의료·법률 통번역 지원이 필요해요' },
+                  { value: 'INTERPRETER', label: '통번역가', desc: '통번역 활동가·프리랜서·센터직원' },
+                ] as const).map(({ value, label, desc }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRole(value)}
+                    className={`rounded-lg border-2 p-3 text-left transition-colors ${
+                      role === value
+                        ? 'border-primary-600 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <p className={`text-sm font-semibold ${role === value ? 'text-primary-700' : 'text-gray-700'}`}>
+                      {label}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="label">이메일</label>
