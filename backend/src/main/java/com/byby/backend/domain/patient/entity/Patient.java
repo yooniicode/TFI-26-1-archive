@@ -20,6 +20,8 @@ public class Patient extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    private UUID authUserId; // Supabase Auth user id (PATIENT 역할 로그인용)
+
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -36,7 +38,7 @@ public class Patient extends BaseEntity {
     private VisaType visaType;
 
     @Column(columnDefinition = "TEXT")
-    private String visaNote; // OTHER일 때 직접 입력
+    private String visaNote;
 
     private LocalDate birthDate;
 
@@ -44,15 +46,16 @@ public class Patient extends BaseEntity {
     private String phone;
 
     @Column(length = 100)
-    private String region; // 거주지 (구 단위)
+    private String region;
 
     @Column(length = 200)
     private String workplaceName;
 
     @Builder
-    public Patient(String name, Nationality nationality, Gender gender,
+    public Patient(UUID authUserId, String name, Nationality nationality, Gender gender,
                    VisaType visaType, String visaNote, LocalDate birthDate,
                    String phone, String region, String workplaceName) {
+        this.authUserId = authUserId;
         this.name = name;
         this.nationality = nationality;
         this.gender = gender;
@@ -64,9 +67,12 @@ public class Patient extends BaseEntity {
         this.workplaceName = workplaceName;
     }
 
-    public void updateInfo(String phone, String region, String workplaceName) {
-        this.phone = phone;
-        this.region = region;
-        this.workplaceName = workplaceName;
+    public void updateInfo(String phone, String region, String workplaceName,
+                           String visaNote, VisaType visaType) {
+        if (phone != null) this.phone = phone;
+        if (region != null) this.region = region;
+        if (workplaceName != null) this.workplaceName = workplaceName;
+        if (visaNote != null) this.visaNote = visaNote;
+        if (visaType != null) this.visaType = visaType;
     }
 }

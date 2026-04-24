@@ -54,4 +54,8 @@ public class Handover extends BaseEntity {
         this.reason = reason;
         this.notes = notes;
     }
+
+    public void assign(Interpreter interpreter) {
+        this.toInterpreter = interpreter;
+    }
 }

@@ -8,13 +8,16 @@ import com.byby.backend.domain.Interpreter.entity.Interpreter;
 import com.byby.backend.domain.hospital.entity.Hospital;
 import com.byby.backend.domain.patient.entity.Patient;
 import jakarta.persistence.*;
-import lombok.Builder;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
+@Table(name = "consultation")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Consultation extends BaseEntity {
 
     @Id
@@ -37,7 +40,7 @@ public class Consultation extends BaseEntity {
     private Hospital hospital;
 
     @Column(length = 100)
-    private String department; // 진료과 (건별 기록)
+    private String department;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -52,16 +55,15 @@ public class Consultation extends BaseEntity {
     private ProcessingType processing;
 
     @Column(columnDefinition = "TEXT")
-    private String memo; // 상담내용메모 (Rm)
+    private String memo;
 
     @Column(precision = 4, scale = 1)
-    private BigDecimal durationHours; // 통역시간
+    private BigDecimal durationHours;
 
-    private Integer fee; // 통역비 (원)
+    private Integer fee;
 
-    private LocalDate nextAppointmentDate; // 다음 예약일정
+    private LocalDate nextAppointmentDate;
 
-    // 관리자 확인 영역 (센터장 전용)
     private LocalDate confirmedAt;
 
     @Column(length = 100)
@@ -95,11 +97,16 @@ public class Consultation extends BaseEntity {
         this.confirmedByPhone = confirmedByPhone;
     }
 
-    public void updateMemo(String memo) {
-        this.memo = memo;
+    public void update(String memo, LocalDate nextAppointmentDate, String department,
+                       BigDecimal durationHours, Integer fee) {
+        if (memo != null) this.memo = memo;
+        if (nextAppointmentDate != null) this.nextAppointmentDate = nextAppointmentDate;
+        if (department != null) this.department = department;
+        if (durationHours != null) this.durationHours = durationHours;
+        if (fee != null) this.fee = fee;
     }
 
-    public void updateNextAppointment(LocalDate nextAppointmentDate) {
-        this.nextAppointmentDate = nextAppointmentDate;
+    public boolean isConfirmed() {
+        return this.confirmedAt != null;
     }
 }

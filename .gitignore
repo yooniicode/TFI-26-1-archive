@@ -1,2 +1,46 @@
+# ─── 환경변수 / 시크릿 (절대 커밋 금지) ───────────────────
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.p12
+*.jks
+
+# ─── IDE ────────────────────────────────────────────────
 .idea/
 *.iml
+*.iws
+*.ipr
+.vscode/
+
+# ─── OS ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Backend (Spring Boot / Gradle) ─────────────────────
+backend/build/
+backend/.gradle/
+backend/out/
+backend/bin/
+backend/HELP.md
+backend/*.log
+
+# ─── Frontend (Next.js) ─────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+frontend/coverage/
+frontend/.turbo/
+
+# ─── Docker ─────────────────────────────────────────────
+# docker-compose.override.yml 은 로컬 전용이므로 무시
+docker-compose.override.yml
+
+# ─── 로그 ───────────────────────────────────────────────
+*.log
+logs/

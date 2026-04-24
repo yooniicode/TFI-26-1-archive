@@ -1,40 +1,51 @@
-.PHONY: dev db backend frontend clean
+.PHONY: dev db backend frontend down db-reset build test gen-key install
 
-# Start everything
-dev: db backend frontend
+# 전체 스택 실행 (docker compose)
+dev:
+	docker compose --env-file .env.local up --build
 
-# Database only
+# DB만 실행
 db:
-	docker compose up db -d
-	@echo "PostgreSQL running on localhost:5432"
+	docker compose --env-file .env.local up db -d
+	@echo "PostgreSQL running on localhost:$(DB_PORT)"
 
-# Spring Boot backend
+# 백엔드 로컬 실행 (DB가 먼저 필요)
 backend:
 	cd backend && ./gradlew bootRun --args='--spring.profiles.active=local'
 
-# Next.js frontend
+# 프론트엔드 로컬 실행
 frontend:
 	cd frontend && npm run dev
 
-# Stop all
+# 프론트엔드 의존성 설치
+install:
+	cd frontend && npm install
+
+# 전체 중지
 down:
 	docker compose down
 
-# Reset database
+# DB 초기화 (볼륨 삭제 → Flyway 재실행)
 db-reset:
 	docker compose down -v
-	docker compose up db -d
+	docker compose --env-file .env.local up db -d
 	@echo "Database reset. Run 'make backend' to apply Flyway migrations."
 
-# Build backend jar
+# 백엔드 JAR 빌드
 build:
-	cd backend && ./gradlew build -x test
+	cd backend && ./gradlew build -x test --no-daemon
 
-# Run tests
+# 테스트 실행
 test:
-	cd backend && ./gradlew test
+	cd backend && ./gradlew test --no-daemon
 
-# Generate encryption key
-gen-key:
-	@openssl rand -hex 32
-	@echo "^ Copy this to FILE_ENCRYPTION_KEY in .env.local"
+# JWT secret 생성
+gen-secret:
+	@openssl rand -base64 64
+	@echo "^ Copy this to JWT_SECRET in .env.local"
+
+# Claude API key 확인
+check-env:
+	@echo "CLAUDE_API_KEY: $${CLAUDE_API_KEY:+set}$${CLAUDE_API_KEY:-NOT SET}"
+	@echo "SUPABASE_URL: $${SUPABASE_URL:+set}$${SUPABASE_URL:-NOT SET}"
+	@echo "JWT_SECRET: $${JWT_SECRET:+set}$${JWT_SECRET:-NOT SET}"

@@ -28,11 +28,20 @@ spring:
       max-file-size: 20MB
       max-request-size: 20MB
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
 byby:
   security:
     jwt:
       secret: ${JWT_SECRET:local-dev-secret-key-change-in-production-minimum-256-bits-long!!}
-      expiration-ms: 86400000  # 24h
+      expiration-ms: 86400000
     cors:
       allowed-origins:
         - http://localhost:3000
@@ -41,18 +50,13 @@ byby:
   supabase:
     url: ${SUPABASE_URL:}
     service-key: ${SUPABASE_SERVICE_KEY:}
-    storage:
-      endpoint: ${SUPABASE_URL:}/storage/v1
-      buckets:
-        medical-reports: medical-reports
-        translation-docs: translation-docs
-        emergency-assets: emergency-assets
 
-  encryption:
-    file-key: ${FILE_ENCRYPTION_KEY:}  # 32-byte hex, openssl rand -hex 32
+  claude:
+    api-key: ${CLAUDE_API_KEY:}
+    model: claude-3-5-haiku-20241022
+    base-url: https://api.anthropic.com
 
 ---
-# Local profile
 spring:
   config:
     activate:
@@ -61,7 +65,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: update  # local에서는 편의상
+      ddl-auto: update
 
 logging:
   level:
@@ -69,18 +73,21 @@ logging:
     org.hibernate.SQL: DEBUG
 
 ---
-# Production profile
 spring:
   config:
     activate:
       on-profile: prod
 
   datasource:
-    url: ${DATABASE_URL}  # Supabase
+    url: ${DATABASE_URL}
     hikari:
       maximum-pool-size: 10
       connection-timeout: 5000
 
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
 logging:
   level:
-    com.pypy: INFO
+    com.byby: INFO

@@ -1,0 +1,153 @@
+-- =====================================================
+-- V1: 초기 스키마 생성
+-- =====================================================
+
+-- 이주민 (Patient)
+CREATE TABLE patient (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id    UUID,                          -- Supabase Auth FK (PATIENT 로그인)
+    name            VARCHAR(100) NOT NULL,
+    nationality     VARCHAR(50)  NOT NULL,
+    gender          VARCHAR(10)  NOT NULL,
+    visa_type       VARCHAR(20)  NOT NULL,
+    visa_note       TEXT,
+    birth_date      DATE,
+    phone           VARCHAR(20),
+    region          VARCHAR(100),
+    workplace_name  VARCHAR(200),
+    created_at      TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_patient_auth_user_id ON patient(auth_user_id);
+CREATE INDEX idx_patient_nationality  ON patient(nationality);
+
+-- 통번역가 (Interpreter)
+CREATE TABLE interpreter (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id UUID         NOT NULL UNIQUE,   -- Supabase Auth FK
+    name         VARCHAR(100) NOT NULL,
+    phone        VARCHAR(20),
+    role         VARCHAR(50)  NOT NULL,
+    active       BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_interpreter_auth_user_id ON interpreter(auth_user_id);
+
+-- 통번역가 사용 언어 (ElementCollection)
+CREATE TABLE interpreter_language (
+    interpreter_id UUID         NOT NULL REFERENCES interpreter(id) ON DELETE CASCADE,
+    language       VARCHAR(50)  NOT NULL
+);
+
+-- 병원 (Hospital)
+CREATE TABLE hospital (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       VARCHAR(200) NOT NULL,
+    address    TEXT,
+    phone      VARCHAR(20),
+    created_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_hospital_name ON hospital(name);
+
+-- 상담/통역 보고서 (Consultation)
+CREATE TABLE consultation (
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    consultation_date     DATE         NOT NULL,
+    patient_id            UUID         NOT NULL REFERENCES patient(id),
+    interpreter_id        UUID                  REFERENCES interpreter(id),
+    hospital_id           UUID                  REFERENCES hospital(id),
+    department            VARCHAR(100),
+    issue_type            VARCHAR(50)  NOT NULL,
+    method                VARCHAR(50),
+    processing            VARCHAR(50),
+    memo                  TEXT,
+    duration_hours        NUMERIC(4,1),
+    fee                   INTEGER,
+    next_appointment_date DATE,
+    confirmed_at          DATE,
+    confirmed_by          VARCHAR(100),
+    confirmed_by_phone    VARCHAR(20),
+    created_at            TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_consultation_patient_id     ON consultation(patient_id);
+CREATE INDEX idx_consultation_interpreter_id ON consultation(interpreter_id);
+CREATE INDEX idx_consultation_date           ON consultation(consultation_date DESC);
+
+-- 인수인계 (Handover)
+CREATE TABLE handover (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id          UUID NOT NULL REFERENCES patient(id),
+    from_interpreter_id UUID          REFERENCES interpreter(id),
+    to_interpreter_id   UUID          REFERENCES interpreter(id),
+    consultation_id     UUID          REFERENCES consultation(id),
+    reason              TEXT,
+    notes               TEXT,
+    created_at          TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_handover_patient_id ON handover(patient_id);
+
+-- 통번역가-이주민 매칭 (PatientMatch)
+CREATE TABLE patient_match (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id     UUID    NOT NULL REFERENCES patient(id),
+    interpreter_id UUID    NOT NULL REFERENCES interpreter(id),
+    active         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_patient_match_patient_id     ON patient_match(patient_id);
+CREATE INDEX idx_patient_match_interpreter_id ON patient_match(interpreter_id);
+-- 환자당 활성 매칭은 1개만 허용
+CREATE UNIQUE INDEX uq_patient_active_match
+    ON patient_match(patient_id) WHERE active = TRUE;
+
+-- 의료 대본 (MedicalScript)
+CREATE TABLE medical_script (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id      UUID        NOT NULL REFERENCES patient(id),
+    consultation_id UUID                 REFERENCES consultation(id),
+    script_type     VARCHAR(20) NOT NULL,
+    content_ko      TEXT        NOT NULL,
+    content_origin  TEXT,
+    created_at      TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_medical_script_patient_id ON medical_script(patient_id);
+
+-- updated_at 자동 갱신 트리거 함수
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 각 테이블에 트리거 적용
+DO $$
+DECLARE
+    t TEXT;
+BEGIN
+    FOREACH t IN ARRAY ARRAY['patient','interpreter','hospital','consultation',
+                              'handover','patient_match','medical_script']
+    LOOP
+        EXECUTE format(
+            'CREATE TRIGGER trg_%s_updated_at
+             BEFORE UPDATE ON %s
+             FOR EACH ROW EXECUTE FUNCTION update_updated_at()',
+            t, t
+        );
+    END LOOP;
+END;
+$$;
