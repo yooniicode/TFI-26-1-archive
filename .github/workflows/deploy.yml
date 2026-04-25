@@ -161,7 +161,7 @@ jobs:
             --set "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
             --set "FILE_ENCRYPTION_KEY=${{ secrets.FILE_ENCRYPTION_KEY }}" \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
-            --environment-id ${{ secrets.RAILWAY_ENV_ID }}
+            --environment ${{ secrets.RAILWAY_ENV_ID }}
 
       - name: Redeploy Railway service
         env:
@@ -169,7 +169,7 @@ jobs:
         run: |
           railway redeploy \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
-            --environment-id ${{ secrets.RAILWAY_ENV_ID }} \
+            --environment ${{ secrets.RAILWAY_ENV_ID }} \
             --yes
 
   # ─── 프론트엔드 배포 (Vercel) ─────────────────────────
