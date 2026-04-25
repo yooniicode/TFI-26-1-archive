@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
@@ -24,9 +24,10 @@ export default function ScriptGeneratePage() {
   })
   const [error, setError] = useState('')
 
-  function loadScripts() {
-    return scriptApi.byPatient(patientId).then(r => setScripts(r.payload ?? []))
-  }
+  const loadScripts = useCallback(
+    () => scriptApi.byPatient(patientId).then(r => setScripts(r.payload ?? [])),
+    [patientId],
+  )
 
   useEffect(() => {
     Promise.all([

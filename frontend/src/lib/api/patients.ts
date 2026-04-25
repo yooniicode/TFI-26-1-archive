@@ -1,6 +1,5 @@
 import { get, post, put } from './client'
 import { schemas } from '../schemas'
-import type { Patient } from '../types'
 
 export const patientApi = {
   list:      (page = 0) => get(`/patients?page=${page}&size=20`, schemas.patients),
@@ -10,5 +9,5 @@ export const patientApi = {
   history:   (id: string, page = 0) =>
     get(`/patients/${id}/history?page=${page}&size=20`, schemas.consultations),
   myRecords: (id: string, page = 0) =>
-    get<Patient[]>(`/patients/${id}/my-records?page=${page}&size=20`),
+    get(`/patients/${id}/my-records?page=${page}&size=20`, schemas.consultations),
 }
