@@ -19,9 +19,7 @@ spring:
         default_schema: public
 
   flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
+    enabled: false
 
   servlet:
     multipart:
@@ -95,7 +93,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
 
 logging:
   level:
