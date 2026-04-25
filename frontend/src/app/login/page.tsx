@@ -68,7 +68,10 @@ export default function LoginPage() {
     if (!email) { setError('이메일을 입력해주세요.'); return }
     setLoading(true); setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({ email })
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    })
     if (error) { setError(error.message); setLoading(false); return }
     setMagicSent(true); setLoading(false)
   }
