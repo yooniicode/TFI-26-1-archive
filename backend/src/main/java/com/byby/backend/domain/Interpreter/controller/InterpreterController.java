@@ -1,11 +1,11 @@
-package com.byby.backend.domain.Interpreter.controller;
+package com.byby.backend.domain.interpreter.controller;
 
 import com.byby.backend.common.response.Response;
 import com.byby.backend.common.response.code.SuccessCode;
 import com.byby.backend.common.security.UserPrincipal;
-import com.byby.backend.domain.Interpreter.dto.InterpreterRequest;
-import com.byby.backend.domain.Interpreter.dto.InterpreterResponse;
-import com.byby.backend.domain.Interpreter.service.InterpreterService;
+import com.byby.backend.domain.interpreter.dto.InterpreterRequest;
+import com.byby.backend.domain.interpreter.dto.InterpreterResponse;
+import com.byby.backend.domain.interpreter.service.InterpreterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

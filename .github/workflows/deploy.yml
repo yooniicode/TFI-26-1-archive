@@ -83,9 +83,9 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://api.example.com
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
   # ─── Docker 이미지 빌드 & Push (main 브랜치만) ──────────
   docker-push:
@@ -137,38 +137,40 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── 백엔드 배포 (Railway / EC2) ──────────────────────
+  # ─── 백엔드 배포 (Railway)
   deploy-backend:
-    name: Deploy Backend
+    name: Deploy Backend to Railway
     needs: docker-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
 
     steps:
-      - name: Deploy to Railway
-        if: vars.DEPLOY_TARGET == 'railway'
-        run: |
-          curl -s https://railway.app/api/v1/deployments \
-            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"serviceId": "${{ secrets.RAILWAY_SERVICE_ID }}","environmentId": "${{ secrets.RAILWAY_ENV_ID }}"}'
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Deploy to EC2 via SSH
-        if: vars.DEPLOY_TARGET == 'ec2'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
-            docker stop byby-backend || true
-            docker rm byby-backend || true
-            docker run -d --name byby-backend \
-              -p 8080:8080 \
-              --env-file /home/${{ secrets.EC2_USER }}/.env.prod \
-              ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+      - name: Sync environment variables to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway variables --set "SPRING_PROFILES_ACTIVE=prod" \
+            --set "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+            --set "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
+            --set "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            --set "CLAUDE_API_KEY=${{ secrets.CLAUDE_API_KEY }}" \
+            --set "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
+            --set "FILE_ENCRYPTION_KEY=${{ secrets.FILE_ENCRYPTION_KEY }}" \
+            --service ${{ secrets.RAILWAY_SERVICE_ID }} \
+            --environment-id ${{ secrets.RAILWAY_ENV_ID }}
+
+      - name: Redeploy Railway service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway redeploy \
+            --service ${{ secrets.RAILWAY_SERVICE_ID }} \
+            --environment-id ${{ secrets.RAILWAY_ENV_ID }} \
+            --yes
 
   # ─── 프론트엔드 배포 (Vercel) ─────────────────────────
   deploy-frontend:

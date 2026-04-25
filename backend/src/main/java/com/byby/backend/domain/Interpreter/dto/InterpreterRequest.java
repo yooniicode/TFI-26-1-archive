@@ -1,4 +1,4 @@
-package com.byby.backend.domain.Interpreter.dto;
+package com.byby.backend.domain.interpreter.dto;
 
 import com.byby.backend.common.enums.InterpreterRole;
 import jakarta.validation.constraints.NotBlank;

@@ -5,8 +5,8 @@ import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
-import com.byby.backend.domain.Interpreter.entity.Interpreter;
-import com.byby.backend.domain.Interpreter.repository.InterpreterRepository;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.consultation.dto.ConsultationRequest;
 import com.byby.backend.domain.consultation.dto.ConsultationResponse;
 import com.byby.backend.domain.consultation.entity.Consultation;
@@ -162,6 +162,16 @@ public class ConsultationService {
             if (!c.getInterpreter().getId().equals(interpreter.getId())) {
                 throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_OWNER);
             }
+            return;
         }
+        if (principal.isPatient()) {
+            Patient patient = patientRepository.findByAuthUserId(principal.getAuthUserId())
+                    .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
+            if (!c.getPatient().getId().equals(patient.getId())) {
+                throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_OWNER);
+            }
+            return;
+        }
+        throw new GeneralException(GeneralErrorCode.FORBIDDEN);
     }
 }

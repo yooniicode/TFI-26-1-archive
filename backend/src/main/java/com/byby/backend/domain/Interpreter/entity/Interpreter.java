@@ -1,4 +1,4 @@
-package com.byby.backend.domain.Interpreter.entity;
+package com.byby.backend.domain.interpreter.entity;
 
 import com.byby.backend.common.entity.BaseEntity;
 import com.byby.backend.common.enums.InterpreterRole;
@@ -20,7 +20,7 @@ public class Interpreter extends BaseEntity {
     private UUID id;
 
     @Column(nullable = false)
-    private UUID authUserId; // Supabase Auth user id
+    private UUID authUserId;
 
     @Column(nullable = false, length = 100)
     private String name;

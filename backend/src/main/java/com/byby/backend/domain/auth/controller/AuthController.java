@@ -5,7 +5,7 @@ import com.byby.backend.common.response.code.SuccessCode;
 import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
-import com.byby.backend.domain.Interpreter.repository.InterpreterRepository;
+import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.auth.dto.AuthRequest;
 import com.byby.backend.domain.auth.dto.AuthResponse;
 import com.byby.backend.domain.auth.service.AuthService;

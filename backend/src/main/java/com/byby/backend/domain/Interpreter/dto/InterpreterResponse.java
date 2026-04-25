@@ -1,7 +1,7 @@
-package com.byby.backend.domain.Interpreter.dto;
+package com.byby.backend.domain.interpreter.dto;
 
 import com.byby.backend.common.enums.InterpreterRole;
-import com.byby.backend.domain.Interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
 
 import java.time.LocalDateTime;
 import java.util.List;

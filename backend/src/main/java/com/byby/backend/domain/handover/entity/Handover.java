@@ -1,7 +1,7 @@
 package com.byby.backend.domain.handover.entity;
 
 import com.byby.backend.common.entity.BaseEntity;
-import com.byby.backend.domain.Interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.consultation.entity.Consultation;
 import com.byby.backend.domain.patient.entity.Patient;
 import jakarta.persistence.*;
@@ -42,7 +42,7 @@ public class Handover extends BaseEntity {
     private String reason;
 
     @Column(columnDefinition = "TEXT")
-    private String notes; // 인수인계 메모
+    private String notes;
 
     @Builder
     public Handover(Patient patient, Interpreter fromInterpreter, Interpreter toInterpreter,

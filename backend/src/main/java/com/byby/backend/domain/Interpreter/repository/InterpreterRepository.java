@@ -1,6 +1,6 @@
-package com.byby.backend.domain.Interpreter.repository;
+package com.byby.backend.domain.interpreter.repository;
 
-import com.byby.backend.domain.Interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

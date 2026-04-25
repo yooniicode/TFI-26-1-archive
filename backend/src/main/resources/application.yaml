@@ -28,6 +28,15 @@ spring:
       max-file-size: 20MB
       max-request-size: 20MB
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
 springdoc:
   api-docs:
     path: /v3/api-docs

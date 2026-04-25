@@ -1,14 +1,14 @@
-package com.byby.backend.domain.Interpreter.service;
+package com.byby.backend.domain.interpreter.service;
 
 import com.byby.backend.common.exception.BusinessException;
 import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
-import com.byby.backend.domain.Interpreter.dto.InterpreterRequest;
-import com.byby.backend.domain.Interpreter.dto.InterpreterResponse;
-import com.byby.backend.domain.Interpreter.entity.Interpreter;
-import com.byby.backend.domain.Interpreter.repository.InterpreterRepository;
+import com.byby.backend.domain.interpreter.dto.InterpreterRequest;
+import com.byby.backend.domain.interpreter.dto.InterpreterResponse;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

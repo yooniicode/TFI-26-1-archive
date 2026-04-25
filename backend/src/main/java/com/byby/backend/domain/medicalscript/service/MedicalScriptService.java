@@ -4,6 +4,7 @@ import com.byby.backend.common.exception.BusinessException;
 import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
+import com.byby.backend.common.enums.ScriptType;
 import com.byby.backend.common.security.UserPrincipal;
 import com.byby.backend.domain.consultation.entity.Consultation;
 import com.byby.backend.domain.consultation.repository.ConsultationRepository;
@@ -112,7 +113,7 @@ public class MedicalScriptService {
         if (req.additionalContext() != null) {
             sb.append("추가 증상/상황: ").append(req.additionalContext()).append("\n");
         }
-        sb.append("\n대본 유형: ").append(req.scriptType() == com.byby.backend.common.enums.ScriptType.EMERGENCY
+        sb.append("\n대본 유형: ").append(req.scriptType() == ScriptType.EMERGENCY
                 ? "응급 상황" : "일반 진료").append("\n");
         sb.append("\n요구사항: 짧고 명확한 한국어 문장으로 작성. 환자가 의사에게 직접 보여줄 수 있도록 구성.");
         return sb.toString();

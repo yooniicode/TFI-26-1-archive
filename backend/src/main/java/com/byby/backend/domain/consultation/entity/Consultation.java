@@ -4,7 +4,7 @@ import com.byby.backend.common.entity.BaseEntity;
 import com.byby.backend.common.enums.ConsultationMethod;
 import com.byby.backend.common.enums.IssueType;
 import com.byby.backend.common.enums.ProcessingType;
-import com.byby.backend.domain.Interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.hospital.entity.Hospital;
 import com.byby.backend.domain.patient.entity.Patient;
 import jakarta.persistence.*;

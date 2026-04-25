@@ -1,6 +1,6 @@
 package com.byby.backend.domain.consultation.repository;
 
-import com.byby.backend.domain.Interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.consultation.entity.Consultation;
 import com.byby.backend.domain.patient.entity.Patient;
 import org.springframework.data.domain.Page;
