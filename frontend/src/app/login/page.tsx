@@ -86,7 +86,7 @@ export default function LoginPage() {
 
     setLoading(true); setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password: signupPassword,
       options: {
@@ -104,8 +104,21 @@ export default function LoginPage() {
     })
 
     if (error) { setError(error.message); setLoading(false); return }
-    setSignupDone(true)
-    setLoading(false)
+
+    if (data.session) {
+      // Email confirmation disabled → 즉시 로그인됨
+      try {
+        await ensureProfile()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '프로필 생성에 실패했습니다.')
+        setLoading(false)
+        return
+      }
+      router.push('/dashboard')
+    } else {
+      setSignupDone(true)
+      setLoading(false)
+    }
   }
 
   if (magicSent) {
