@@ -152,24 +152,24 @@ jobs:
       - name: Sync environment variables to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
-          railway variables --set "SPRING_PROFILES_ACTIVE=prod" \
+          railway variable --set "SPRING_PROFILES_ACTIVE=prod" \
             --set "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
             --set "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
             --set "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}" \
             --set "CLAUDE_API_KEY=${{ secrets.CLAUDE_API_KEY }}" \
             --set "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
             --set "FILE_ENCRYPTION_KEY=${{ secrets.FILE_ENCRYPTION_KEY }}" \
-            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
             --environment ${{ secrets.RAILWAY_ENV_ID }}
 
       - name: Redeploy Railway service
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
           railway redeploy \
-            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
             --environment ${{ secrets.RAILWAY_ENV_ID }} \
             --yes
