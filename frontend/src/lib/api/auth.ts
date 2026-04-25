@@ -1,7 +1,8 @@
 import { get, post } from './client'
-import type { AuthMe, RegisterProfileRequest } from '../types'
+import { schemas } from '../schemas'
+import type { RegisterProfileRequest } from '../types'
 
 export const authApi = {
-  me:              () => get<AuthMe>('/auth/me'),
+  me:              () => get('/auth/me', schemas.authMe),
   registerProfile: (body: RegisterProfileRequest) => post<void>('/auth/register-profile', body),
 }

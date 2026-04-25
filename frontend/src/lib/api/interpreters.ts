@@ -1,11 +1,12 @@
 import { get, post, put, patch } from './client'
-import type { Interpreter, InterpreterRole } from '../types'
+import { schemas } from '../schemas'
+import type { InterpreterRole } from '../types'
 
 export const interpreterApi = {
-  list:       (page = 0) => get<Interpreter[]>(`/interpreters?page=${page}&size=20`),
-  get:        (id: string) => get<Interpreter>(`/interpreters/${id}`),
-  create:     (body: unknown) => post<Interpreter>('/interpreters', body),
+  list:       (page = 0) => get(`/interpreters?page=${page}&size=20`, schemas.interpreters),
+  get:        (id: string) => get(`/interpreters/${id}`, schemas.interpreter),
+  create:     (body: unknown) => post('/interpreters', body, schemas.interpreter),
   update:     (id: string, body: { phone?: string; role?: InterpreterRole }) =>
-    put<Interpreter>(`/interpreters/${id}`, body),
+    put(`/interpreters/${id}`, body, schemas.interpreter),
   deactivate: (id: string) => patch<void>(`/interpreters/${id}/deactivate`),
 }

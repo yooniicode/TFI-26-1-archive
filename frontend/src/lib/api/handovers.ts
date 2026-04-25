@@ -1,9 +1,9 @@
 import { get, post, patch } from './client'
-import type { Handover } from '../types'
+import { schemas } from '../schemas'
 
 export const handoverApi = {
-  create:    (body: unknown) => post<Handover>('/handovers', body),
+  create:    (body: unknown) => post('/handovers', body, schemas.handover),
   byPatient: (patientId: string, page = 0) =>
-    get<Handover[]>(`/handovers/patient/${patientId}?page=${page}&size=20`),
-  assign:    (id: string, body: unknown) => patch<Handover>(`/handovers/${id}/assign`, body),
+    get(`/handovers/patient/${patientId}?page=${page}&size=20`, schemas.handovers),
+  assign:    (id: string, body: unknown) => patch(`/handovers/${id}/assign`, body, schemas.handover),
 }

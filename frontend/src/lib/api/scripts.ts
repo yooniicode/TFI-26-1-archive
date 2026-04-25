@@ -1,9 +1,9 @@
 import { get, post } from './client'
-import type { MedicalScript } from '../types'
+import { schemas } from '../schemas'
 
 export const scriptApi = {
-  generate:  (body: unknown) => post<MedicalScript>('/scripts/generate', body),
+  generate:  (body: unknown) => post('/scripts/generate', body, schemas.script),
   byPatient: (patientId: string, page = 0) =>
-    get<MedicalScript[]>(`/scripts/patient/${patientId}?page=${page}&size=20`),
-  get:       (id: string) => get<MedicalScript>(`/scripts/${id}`),
+    get(`/scripts/patient/${patientId}?page=${page}&size=20`, schemas.scripts),
+  get:       (id: string) => get(`/scripts/${id}`, schemas.script),
 }

@@ -1,9 +1,9 @@
 import { get, post, del } from './client'
-import type { PatientMatch } from '../types'
+import { schemas } from '../schemas'
 
 export const matchApi = {
-  list:      (page = 0) => get<PatientMatch[]>(`/matching?page=${page}&size=20`),
-  create:    (body: unknown) => post<PatientMatch>('/matching', body),
-  byPatient: (patientId: string) => get<PatientMatch>(`/matching/patient/${patientId}`),
+  list:      (page = 0) => get(`/matching?page=${page}&size=20`, schemas.matches),
+  create:    (body: unknown) => post('/matching', body, schemas.match),
+  byPatient: (patientId: string) => get(`/matching/patient/${patientId}`, schemas.match),
   remove:    (id: string) => del<void>(`/matching/${id}`),
 }
