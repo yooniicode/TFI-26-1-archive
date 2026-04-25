@@ -153,10 +153,10 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENV_ID }}
         run: |
           railway redeploy \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
-            --environment ${{ secrets.RAILWAY_ENV_ID }} \
             --yes
 
   # ─── 프론트엔드 배포 (Vercel) ─────────────────────────
