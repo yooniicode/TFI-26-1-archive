@@ -44,16 +44,18 @@ public class MedicalScriptService {
 
     @Transactional
     public ScriptResponse.Detail generate(ScriptRequest.Generate req, UserPrincipal principal) {
-        Patient patient = patientRepository.findById(req.patientId())
-                .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
-
+        final Patient patient;
         if (principal.isPatient()) {
             Patient self = patientRepository.findByAuthUserId(principal.getAuthUserId())
                     .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
-            if (!self.getId().equals(patient.getId())) {
+            if (!self.getId().equals(req.patientId())) {
                 throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_OWNER);
             }
-        } else if (!principal.isAdmin() && !principal.isInterpreter()) {
+            patient = self;
+        } else if (principal.isAdmin() || principal.isInterpreter()) {
+            patient = patientRepository.findById(req.patientId())
+                    .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
+        } else {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
 

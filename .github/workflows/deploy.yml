@@ -160,6 +160,7 @@ jobs:
             --set "CLAUDE_API_KEY=${{ secrets.CLAUDE_API_KEY }}" \
             --set "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
             --set "FILE_ENCRYPTION_KEY=${{ secrets.FILE_ENCRYPTION_KEY }}" \
+            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
             --environment ${{ secrets.RAILWAY_ENV_ID }}
 
@@ -168,6 +169,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           railway redeploy \
+            --project ${{ secrets.RAILWAY_PROJECT_ID }} \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
             --environment ${{ secrets.RAILWAY_ENV_ID }} \
             --yes

@@ -30,7 +30,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   } catch {
-    // Supabase 연결 실패 시 요청 그대로 통과
+    if (!request.nextUrl.pathname.startsWith('/login')) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
   }
 
   return response
