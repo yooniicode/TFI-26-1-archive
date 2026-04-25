@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import AppShell from '@/components/AppShell'
 import { patientApi, interpreterApi } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
 import { createClient } from '@/lib/supabase'
 import { useMe } from '@/hooks/useMe'
 import type { Patient, Interpreter, VisaType, InterpreterRole } from '@/lib/types'
@@ -17,13 +18,13 @@ export default function MyPage() {
   const { data: me, isLoading: meLoading } = useMe()
 
   const { data: patient, isLoading: patientLoading } = useQuery({
-    queryKey: ['patient', me?.entityId],
+    queryKey: queryKeys.patients.detail(me?.entityId ?? ''),
     queryFn: () => patientApi.get(me!.entityId!).then(r => r.payload as Patient),
     enabled: me?.role === 'patient' && !!me?.entityId,
   })
 
   const { data: interpreter, isLoading: interpreterLoading } = useQuery({
-    queryKey: ['interpreter', me?.entityId],
+    queryKey: queryKeys.interpreters.detail(me?.entityId ?? ''),
     queryFn: () => interpreterApi.get(me!.entityId!).then(r => r.payload as Interpreter),
     enabled: me?.role === 'interpreter' && !!me?.entityId,
   })
@@ -61,8 +62,8 @@ export default function MyPage() {
       return interpreterApi.update(me!.entityId!, { phone: intPhone, role: intRole })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patient', me?.entityId] })
-      queryClient.invalidateQueries({ queryKey: ['interpreter', me?.entityId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.patients.detail(me?.entityId ?? '') })
+      queryClient.invalidateQueries({ queryKey: queryKeys.interpreters.detail(me?.entityId ?? '') })
     },
   })
 

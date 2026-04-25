@@ -30,6 +30,9 @@ export const ISSUE_LABEL: Record<IssueType, string> = {
 export const METHOD_LABEL: Record<ConsultationMethod, string> = {
   VISIT: '출장/동행', PHONE: '전화', VIDEO: '영상', OTHER: '기타',
 }
+export const INTERPRETER_ROLE_LABEL: Record<InterpreterRole, string> = {
+  ACTIVIST: '통번역활동가', FREELANCER: '프리랜서', STAFF: '센터직원',
+}
 export const SCRIPT_LABEL: Record<ScriptType, string> = { GENERAL: '일반 진료', EMERGENCY: '응급' }
 
 // API response types

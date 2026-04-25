@@ -1,34 +1,33 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import AppShell from '@/components/AppShell'
 import Badge from '@/components/ui/Badge'
 import Spinner from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { interpreterApi } from '@/lib/api'
-import type { Interpreter } from '@/lib/types'
-
-const ROLE_LABEL: Record<string, string> = {
-  ACTIVIST: '통번역활동가', FREELANCER: '프리랜서', STAFF: '센터직원',
-}
+import { queryKeys } from '@/lib/queryKeys'
+import { INTERPRETER_ROLE_LABEL } from '@/lib/types'
 
 export default function InterpretersPage() {
-  const [items, setItems] = useState<Interpreter[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
-  function load() {
-    return interpreterApi.list().then(r => setItems(r.payload ?? []))
-  }
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: queryKeys.interpreters.list(0),
+    queryFn: () => interpreterApi.list().then(r => r.payload ?? []),
+  })
 
-  useEffect(() => { load().finally(() => setLoading(false)) }, [])
+  const { mutate: deactivate } = useMutation({
+    mutationFn: (id: string) => interpreterApi.deactivate(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.interpreters.list(0) }),
+  })
 
-  async function handleDeactivate(id: string, name: string) {
+  function handleDeactivate(id: string, name: string) {
     if (!confirm(`${name} 통번역가를 비활성화하시겠습니까?`)) return
-    await interpreterApi.deactivate(id)
-    await load()
+    deactivate(id)
   }
 
-  if (loading) return <AppShell><Spinner /></AppShell>
+  if (isLoading) return <AppShell><Spinner /></AppShell>
 
   return (
     <AppShell>
@@ -47,7 +46,7 @@ export default function InterpretersPage() {
                     {!i.active && <Badge variant="red">비활성</Badge>}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {ROLE_LABEL[i.role]} · {i.languages.join(', ') || '언어 미등록'}
+                    {INTERPRETER_ROLE_LABEL[i.role]} · {i.languages.join(', ') || '언어 미등록'}
                   </p>
                   {i.phone && <p className="text-xs text-gray-400">{i.phone}</p>}
                 </div>

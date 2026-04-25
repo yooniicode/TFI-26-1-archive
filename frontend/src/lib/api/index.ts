@@ -1,0 +1,8 @@
+export { authApi } from './auth'
+export { patientApi } from './patients'
+export { interpreterApi } from './interpreters'
+export { consultationApi } from './consultations'
+export { handoverApi } from './handovers'
+export { matchApi } from './matching'
+export { scriptApi } from './scripts'
+export { hospitalApi } from './hospitals'

@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import AppShell from '@/components/AppShell'
 import { consultationApi } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
 import { useMe } from '@/hooks/useMe'
 import type { Consultation } from '@/lib/types'
 import { ISSUE_LABEL } from '@/lib/types'
@@ -14,7 +15,7 @@ export default function DashboardPage() {
   const { data: me, isLoading: meLoading } = useMe()
 
   const { data: consultations, isLoading: listLoading } = useQuery({
-    queryKey: ['consultations', 0],
+    queryKey: queryKeys.consultations.list(0),
     queryFn: () => consultationApi.list(0).then(r => (r.payload ?? []) as Consultation[]),
     enabled: !!me,
   })
