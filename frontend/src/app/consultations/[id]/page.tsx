@@ -79,13 +79,13 @@ export default function ConsultationDetailPage() {
         </div>
       )}
 
-      {me?.role === 'ADMIN' && !data.confirmed && (
+      {me?.role === 'admin' && !data.confirmed && (
         <button onClick={handleConfirm} disabled={confirming} className="btn-primary w-full">
           {confirming ? '처리 중...' : '✅ 보고서 확인 (컨펌)'}
         </button>
       )}
 
-      {me?.role === 'INTERPRETER' && !data.confirmed && (
+      {me?.role === 'interpreter' && !data.confirmed && (
         <button
           onClick={() => router.push(`/consultations/${id}/edit`)}
           className="btn-secondary w-full"

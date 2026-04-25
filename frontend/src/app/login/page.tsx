@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [name, setName] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('')
-  const [role, setRole] = useState<Extract<UserRole, 'INTERPRETER' | 'PATIENT'>>('PATIENT')
+  const [role, setRole] = useState<Extract<UserRole, 'interpreter' | 'patient'>>('patient')
   const [nationality, setNationality] = useState<Nationality>('OTHER')
   const [gender, setGender] = useState<Gender>('OTHER')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
@@ -41,10 +41,10 @@ export default function LoginPage() {
     await authApi.registerProfile({
       name: resolvedName,
       phone: phone || undefined,
-      nationality: userRole === 'PATIENT' ? nationality : undefined,
-      gender: userRole === 'PATIENT' ? gender : undefined,
-      visaType: userRole === 'PATIENT' ? visaType : undefined,
-      interpreterRole: userRole === 'INTERPRETER' ? interpreterRole : undefined,
+      nationality: userRole === 'patient' ? nationality : undefined,
+      gender: userRole === 'patient' ? gender : undefined,
+      visaType: userRole === 'patient' ? visaType : undefined,
+      interpreterRole: userRole === 'interpreter' ? interpreterRole : undefined,
     })
   }
 
@@ -184,8 +184,8 @@ export default function LoginPage() {
               <label className="label">역할</label>
               <div className="grid grid-cols-2 gap-2">
                 {([
-                  { value: 'PATIENT', label: '이주민', desc: '의료·법률 통번역 지원이 필요해요' },
-                  { value: 'INTERPRETER', label: '통번역가', desc: '통번역 활동가·프리랜서·센터직원' },
+                  { value: 'patient', label: '이주민', desc: '의료·법률 통번역 지원이 필요해요' },
+                  { value: 'interpreter', label: '통번역가', desc: '통번역 활동가·프리랜서·센터직원' },
                 ] as const).map(({ value, label, desc }) => (
                   <button
                     key={value}
@@ -226,7 +226,7 @@ export default function LoginPage() {
                 placeholder="010-0000-0000"
               />
             </div>
-            {role === 'PATIENT' && (
+            {role === 'patient' && (
               <>
                 <div>
                   <label className="label">국적</label>
@@ -273,7 +273,7 @@ export default function LoginPage() {
                 </div>
               </>
             )}
-            {role === 'INTERPRETER' && (
+            {role === 'interpreter' && (
               <div>
                 <label className="label">통번역가 구분</label>
                 <select className="input" value={interpreterRole} onChange={e => setInterpreterRole(e.target.value as InterpreterRole)}>

@@ -32,7 +32,7 @@ export default function MyPage() {
     authApi.me().then(async r => {
       const meData = r.payload
       setMe(meData)
-      if (meData.role === 'PATIENT' && meData.entityId) {
+      if (meData.role === 'patient' && meData.entityId) {
         const res = await patientApi.get(meData.entityId)
         const p = res.payload as Patient
         setPhone(p.phone ?? '')
@@ -41,7 +41,7 @@ export default function MyPage() {
         setVisaType(p.visaType)
         setVisaNote(p.visaNote ?? '')
       }
-      if (meData.role === 'INTERPRETER' && meData.entityId) {
+      if (meData.role === 'interpreter' && meData.entityId) {
         const res = await interpreterApi.get(meData.entityId)
         const i = res.payload as Interpreter
         setIntPhone(i.phone ?? '')
@@ -55,9 +55,9 @@ export default function MyPage() {
     if (!me?.entityId) return
     setSaving(true); setError(''); setSuccess(false)
     try {
-      if (me.role === 'PATIENT') {
+      if (me.role === 'patient') {
         await patientApi.update(me.entityId, { phone, region, workplaceName, visaType, visaNote })
-      } else if (me.role === 'INTERPRETER') {
+      } else if (me.role === 'interpreter') {
         await interpreterApi.update(me.entityId, { phone: intPhone, role: intRole })
       }
       setSuccess(true)
@@ -81,12 +81,12 @@ export default function MyPage() {
         <div>
           <h1 className="text-xl font-bold">마이페이지</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {me?.role === 'INTERPRETER' ? '통번역가' : '이주민'} · {me?.name}
+            {me?.role === 'interpreter' ? '통번역가' : '이주민'} · {me?.name}
           </p>
         </div>
 
         <form onSubmit={handleSave} className="space-y-4">
-          {me?.role === 'PATIENT' && (
+          {me?.role === 'patient' && (
             <>
               <div>
                 <label className="label">연락처</label>
@@ -115,7 +115,7 @@ export default function MyPage() {
             </>
           )}
 
-          {me?.role === 'INTERPRETER' && (
+          {me?.role === 'interpreter' && (
             <>
               <div>
                 <label className="label">연락처</label>

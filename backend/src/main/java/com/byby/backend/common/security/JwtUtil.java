@@ -67,7 +67,7 @@ public class JwtUtil {
                 else if (role != null) roleStr = role.toString();
             }
         }
-        UserRole role = roleStr != null ? UserRole.valueOf(roleStr) : UserRole.PATIENT;
+        UserRole role = roleStr != null ? UserRole.valueOf(roleStr) : UserRole.patient;
         return new UserPrincipal(authUserId, role);
     }
 

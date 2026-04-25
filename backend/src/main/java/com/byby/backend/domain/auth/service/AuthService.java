@@ -25,11 +25,11 @@ public class AuthService {
     public void registerProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
 
-        if (principal.getRole() == UserRole.PATIENT) {
+        if (principal.getRole() == UserRole.patient) {
             registerPatientProfile(req, principal);
             return;
         }
-        if (principal.getRole() == UserRole.INTERPRETER) {
+        if (principal.getRole() == UserRole.interpreter) {
             registerInterpreterProfile(req, principal);
             return;
         }

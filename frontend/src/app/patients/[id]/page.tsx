@@ -63,7 +63,7 @@ export default function PatientDetailPage() {
       </div>
 
       {/* 퀵 액션 */}
-      {me?.role === 'INTERPRETER' && (
+      {me?.role === 'interpreter' && (
         <div className="flex gap-2 mb-4">
           <Link href={`/consultations/new?patientId=${id}`} className="btn-primary flex-1 text-center text-sm">
             보고서 작성

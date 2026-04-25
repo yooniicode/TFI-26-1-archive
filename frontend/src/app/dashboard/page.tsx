@@ -35,12 +35,12 @@ export default function DashboardPage() {
             안녕하세요, {me?.name ?? ''}님 👋
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {me?.role === 'ADMIN' ? '센터장' : me?.role === 'INTERPRETER' ? '통번역가' : '이주민'}
+            {me?.role === 'admin' ? '센터장' : me?.role === 'interpreter' ? '통번역가' : '이주민'}
           </p>
         </div>
 
         {/* 퀵 액션 */}
-        {me?.role === 'INTERPRETER' && (
+        {me?.role === 'interpreter' && (
           <div className="grid grid-cols-2 gap-3">
             <Link href="/consultations/new" className="card flex flex-col items-center py-5 gap-2 hover:border-primary-300 transition-colors">
               <span className="text-3xl">📝</span>
@@ -53,7 +53,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {me?.role === 'ADMIN' && (
+        {me?.role === 'admin' && (
           <div className="grid grid-cols-3 gap-2">
             {[
               { href: '/consultations', label: '보고서', icon: '📝' },
@@ -68,7 +68,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {me?.role === 'PATIENT' && (
+        {me?.role === 'patient' && (
           <div className="grid grid-cols-2 gap-3">
             <Link href="/my-records" className="card flex flex-col items-center py-5 gap-2 hover:border-primary-300">
               <span className="text-3xl">📋</span>
@@ -84,7 +84,7 @@ export default function DashboardPage() {
         )}
 
         {/* 최근 보고서 */}
-        {me?.role !== 'PATIENT' && (
+        {me?.role !== 'patient' && (
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-semibold">최근 보고서</h2>

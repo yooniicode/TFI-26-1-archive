@@ -58,21 +58,21 @@ public class AuthController {
 
     private String resolveName(UserPrincipal principal) {
         return switch (principal.getRole()) {
-            case INTERPRETER -> interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+            case interpreter -> interpreterRepository.findByAuthUserId(principal.getAuthUserId())
                     .map(i -> i.getName()).orElse(null);
-            case PATIENT -> patientRepository.findByAuthUserId(principal.getAuthUserId())
+            case patient -> patientRepository.findByAuthUserId(principal.getAuthUserId())
                     .map(p -> p.getName()).orElse(null);
-            case ADMIN -> "관리자";
+            case admin -> "관리자";
         };
     }
 
     private java.util.UUID resolveEntityId(UserPrincipal principal) {
         return switch (principal.getRole()) {
-            case INTERPRETER -> interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+            case interpreter -> interpreterRepository.findByAuthUserId(principal.getAuthUserId())
                     .map(i -> i.getId()).orElse(null);
-            case PATIENT -> patientRepository.findByAuthUserId(principal.getAuthUserId())
+            case patient -> patientRepository.findByAuthUserId(principal.getAuthUserId())
                     .map(p -> p.getId()).orElse(null);
-            case ADMIN -> null;
+            case admin -> null;
         };
     }
 }

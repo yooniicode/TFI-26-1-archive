@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'INTERPRETER' | 'PATIENT'
+export type UserRole = 'admin' | 'interpreter' | 'patient'
 
 export type Nationality =
   | 'VIETNAM' | 'CHINA' | 'CAMBODIA' | 'MYANMAR' | 'PHILIPPINES'

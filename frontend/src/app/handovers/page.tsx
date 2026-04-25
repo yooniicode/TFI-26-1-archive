@@ -27,7 +27,7 @@ export default function HandoversPage() {
       .then(([meRes, pRes]) => {
         setMe(meRes.payload)
         setPatients(pRes.payload ?? [])
-        if (meRes.payload.role === 'ADMIN') {
+        if (meRes.payload.role === 'admin') {
           return interpreterApi.list().then(r => setInterpreters(r.payload ?? []))
         }
       })
@@ -49,7 +49,7 @@ export default function HandoversPage() {
     <AppShell>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-lg font-bold">인수인계</h1>
-        {me?.role === 'INTERPRETER' && (
+        {me?.role === 'interpreter' && (
           <button onClick={() => setShowForm(v => !v)} className="btn-primary text-sm py-1.5 px-3">
             + 요청
           </button>
@@ -63,7 +63,7 @@ export default function HandoversPage() {
       )}
 
       {/* 요청 폼 */}
-      {showForm && me?.role === 'INTERPRETER' && (
+      {showForm && me?.role === 'interpreter' && (
         <form onSubmit={handleCreate} className="card mb-4 space-y-3">
           <h2 className="font-semibold text-sm">인수인계 요청</h2>
           <div>

@@ -11,13 +11,13 @@ import clsx from 'clsx'
 interface NavItem { href: string; label: string; icon: string; roles: UserRole[] }
 
 const NAV: NavItem[] = [
-  { href: '/dashboard',     label: '홈',       icon: '🏠', roles: ['ADMIN','INTERPRETER','PATIENT'] },
-  { href: '/consultations', label: '보고서',   icon: '📝', roles: ['ADMIN','INTERPRETER'] },
-  { href: '/patients',      label: '이주민',   icon: '👥', roles: ['ADMIN','INTERPRETER'] },
-  { href: '/handovers',     label: '인수인계', icon: '🔄', roles: ['ADMIN','INTERPRETER'] },
-  { href: '/matching',      label: '매칭',     icon: '🔀', roles: ['ADMIN'] },
-  { href: '/interpreters',  label: '통번역가', icon: '🧑‍💼', roles: ['ADMIN'] },
-  { href: '/my-records',   label: '내 기록',  icon: '📋', roles: ['PATIENT'] },
+  { href: '/dashboard',     label: '홈',       icon: '🏠', roles: ['admin','interpreter','patient'] },
+  { href: '/consultations', label: '보고서',   icon: '📝', roles: ['admin','interpreter'] },
+  { href: '/patients',      label: '이주민',   icon: '👥', roles: ['admin','interpreter'] },
+  { href: '/handovers',     label: '인수인계', icon: '🔄', roles: ['admin','interpreter'] },
+  { href: '/matching',      label: '매칭',     icon: '🔀', roles: ['admin'] },
+  { href: '/interpreters',  label: '통번역가', icon: '🧑‍💼', roles: ['admin'] },
+  { href: '/my-records',   label: '내 기록',  icon: '📋', roles: ['patient'] },
 ]
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

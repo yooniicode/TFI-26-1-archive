@@ -30,7 +30,7 @@ export default function ConsultationsPage() {
     <AppShell>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-lg font-bold">상담 보고서</h1>
-        {me?.role === 'INTERPRETER' && (
+        {me?.role === 'interpreter' && (
           <Link href="/consultations/new" className="btn-primary text-sm py-1.5 px-3">
             + 작성
           </Link>

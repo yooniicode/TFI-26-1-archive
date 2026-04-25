@@ -30,7 +30,7 @@ public class UserPrincipal implements UserDetails {
     @Override public boolean isCredentialsNonExpired() { return true; }
     @Override public boolean isEnabled() { return true; }
 
-    public boolean isAdmin() { return role == UserRole.ADMIN; }
-    public boolean isInterpreter() { return role == UserRole.INTERPRETER; }
-    public boolean isPatient() { return role == UserRole.PATIENT; }
+    public boolean isAdmin() { return role == UserRole.admin; }
+    public boolean isInterpreter() { return role == UserRole.interpreter; }
+    public boolean isPatient() { return role == UserRole.patient; }
 }
