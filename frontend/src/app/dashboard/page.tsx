@@ -1,35 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import AppShell from '@/components/AppShell'
-import { authApi, consultationApi, patientApi } from '@/lib/api'
-import type { AuthMe, Consultation } from '@/lib/types'
+import { consultationApi } from '@/lib/api'
+import { useMe } from '@/hooks/useMe'
+import type { Consultation } from '@/lib/types'
 import { ISSUE_LABEL } from '@/lib/types'
 import Link from 'next/link'
 import Spinner from '@/components/ui/Spinner'
 import Badge from '@/components/ui/Badge'
 
 export default function DashboardPage() {
-  const [me, setMe] = useState<AuthMe | null>(null)
-  const [recent, setRecent] = useState<Consultation[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: me, isLoading: meLoading } = useMe()
 
-  useEffect(() => {
-    Promise.all([
-      authApi.me(),
-      consultationApi.list(0),
-    ]).then(([meRes, cRes]) => {
-      setMe(meRes.payload)
-      setRecent((cRes.payload ?? []).slice(0, 5))
-    }).finally(() => setLoading(false))
-  }, [])
+  const { data: consultations, isLoading: listLoading } = useQuery({
+    queryKey: ['consultations', 0],
+    queryFn: () => consultationApi.list(0).then(r => (r.payload ?? []) as Consultation[]),
+    enabled: !!me,
+  })
 
-  if (loading) return <AppShell><Spinner /></AppShell>
+  if (meLoading || listLoading) return <AppShell><Spinner /></AppShell>
+
+  const recent = (consultations ?? []).slice(0, 5)
 
   return (
     <AppShell>
       <div className="space-y-5">
-        {/* 환영 */}
         <div>
           <h1 className="text-xl font-bold">
             안녕하세요, {me?.name ?? ''}님 👋
@@ -39,7 +35,6 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* 퀵 액션 */}
         {me?.role === 'interpreter' && (
           <div className="grid grid-cols-2 gap-3">
             <Link href="/consultations/new" className="card flex flex-col items-center py-5 gap-2 hover:border-primary-300 transition-colors">
@@ -83,7 +78,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 최근 보고서 */}
         {me?.role !== 'patient' && (
           <section>
             <div className="flex justify-between items-center mb-3">

@@ -2,10 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { authApi } from '@/lib/api'
-import type { AuthMe, UserRole } from '@/lib/types'
+import type { UserRole } from '@/lib/types'
+import { useMe } from '@/hooks/useMe'
 import clsx from 'clsx'
 
 interface NavItem { href: string; label: string; icon: string; roles: UserRole[] }
@@ -23,11 +22,7 @@ const NAV: NavItem[] = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [me, setMe] = useState<AuthMe | null>(null)
-
-  useEffect(() => {
-    authApi.me().then(r => setMe(r.payload)).catch(() => {})
-  }, [])
+  const { data: me } = useMe()
 
   async function handleLogout() {
     await createClient().auth.signOut()
@@ -38,7 +33,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-white shadow-sm">
-      {/* 상단 헤더 */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <span className="font-bold text-primary-700 text-lg">TFI</span>
         <div className="flex items-center gap-3">
@@ -55,12 +49,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* 본문 */}
       <main className="flex-1 pb-20 px-4 pt-4 overflow-y-auto">
         {children}
       </main>
 
-      {/* 하단 네비게이션 */}
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white border-t border-gray-100 flex justify-around z-10">
         {visibleNav.map(item => (
           <Link

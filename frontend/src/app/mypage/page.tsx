@@ -2,77 +2,76 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import AppShell from '@/components/AppShell'
-import { authApi, patientApi, interpreterApi } from '@/lib/api'
+import { patientApi, interpreterApi } from '@/lib/api'
 import { createClient } from '@/lib/supabase'
-import type { AuthMe, Patient, Interpreter, VisaType, InterpreterRole } from '@/lib/types'
+import { useMe } from '@/hooks/useMe'
+import type { Patient, Interpreter, VisaType, InterpreterRole } from '@/lib/types'
 import { VISA_LABEL } from '@/lib/types'
 import Spinner from '@/components/ui/Spinner'
 
 export default function MyPage() {
   const router = useRouter()
-  const [me, setMe] = useState<AuthMe | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const queryClient = useQueryClient()
+  const { data: me, isLoading: meLoading } = useMe()
 
-  // PATIENT 수정 필드
+  const { data: patient, isLoading: patientLoading } = useQuery({
+    queryKey: ['patient', me?.entityId],
+    queryFn: () => patientApi.get(me!.entityId!).then(r => r.payload as Patient),
+    enabled: me?.role === 'patient' && !!me?.entityId,
+  })
+
+  const { data: interpreter, isLoading: interpreterLoading } = useQuery({
+    queryKey: ['interpreter', me?.entityId],
+    queryFn: () => interpreterApi.get(me!.entityId!).then(r => r.payload as Interpreter),
+    enabled: me?.role === 'interpreter' && !!me?.entityId,
+  })
+
   const [phone, setPhone] = useState('')
   const [region, setRegion] = useState('')
   const [workplaceName, setWorkplaceName] = useState('')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [visaNote, setVisaNote] = useState('')
-
-  // INTERPRETER 수정 필드
   const [intPhone, setIntPhone] = useState('')
   const [intRole, setIntRole] = useState<InterpreterRole>('FREELANCER')
 
   useEffect(() => {
-    authApi.me().then(async r => {
-      const meData = r.payload
-      setMe(meData)
-      if (meData.role === 'patient' && meData.entityId) {
-        const res = await patientApi.get(meData.entityId)
-        const p = res.payload as Patient
-        setPhone(p.phone ?? '')
-        setRegion(p.region ?? '')
-        setWorkplaceName(p.workplaceName ?? '')
-        setVisaType(p.visaType)
-        setVisaNote(p.visaNote ?? '')
-      }
-      if (meData.role === 'interpreter' && meData.entityId) {
-        const res = await interpreterApi.get(meData.entityId)
-        const i = res.payload as Interpreter
-        setIntPhone(i.phone ?? '')
-        setIntRole(i.role)
-      }
-    }).catch(() => {}).finally(() => setLoading(false))
-  }, [])
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    if (!me?.entityId) return
-    setSaving(true); setError(''); setSuccess(false)
-    try {
-      if (me.role === 'patient') {
-        await patientApi.update(me.entityId, { phone, region, workplaceName, visaType, visaNote })
-      } else if (me.role === 'interpreter') {
-        await interpreterApi.update(me.entityId, { phone: intPhone, role: intRole })
-      }
-      setSuccess(true)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '저장에 실패했습니다.')
-    } finally {
-      setSaving(false)
+    if (patient) {
+      setPhone(patient.phone ?? '')
+      setRegion(patient.region ?? '')
+      setWorkplaceName(patient.workplaceName ?? '')
+      setVisaType(patient.visaType)
+      setVisaNote(patient.visaNote ?? '')
     }
-  }
+  }, [patient])
+
+  useEffect(() => {
+    if (interpreter) {
+      setIntPhone(interpreter.phone ?? '')
+      setIntRole(interpreter.role)
+    }
+  }, [interpreter])
+
+  const { mutate: save, isPending: saving, isSuccess, error: saveError } = useMutation<unknown, Error>({
+    mutationFn: () => {
+      if (me?.role === 'patient') {
+        return patientApi.update(me.entityId!, { phone, region, workplaceName, visaType, visaNote })
+      }
+      return interpreterApi.update(me!.entityId!, { phone: intPhone, role: intRole })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient', me?.entityId] })
+      queryClient.invalidateQueries({ queryKey: ['interpreter', me?.entityId] })
+    },
+  })
 
   async function handleLogout() {
     await createClient().auth.signOut()
     router.push('/login')
   }
 
+  const loading = meLoading || patientLoading || interpreterLoading
   if (loading) return <AppShell><Spinner /></AppShell>
 
   return (
@@ -85,7 +84,7 @@ export default function MyPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-4">
+        <form onSubmit={e => { e.preventDefault(); save() }} className="space-y-4">
           {me?.role === 'patient' && (
             <>
               <div>
@@ -147,8 +146,8 @@ export default function MyPage() {
             </>
           )}
 
-          {error && <p className="text-red-500 text-xs">{error}</p>}
-          {success && <p className="text-green-600 text-xs">저장되었습니다.</p>}
+          {saveError && <p className="text-red-500 text-xs">{saveError instanceof Error ? saveError.message : '저장에 실패했습니다.'}</p>}
+          {isSuccess && <p className="text-green-600 text-xs">저장되었습니다.</p>}
 
           <button type="submit" className="btn-primary w-full" disabled={saving}>
             {saving ? '저장 중...' : '저장'}
