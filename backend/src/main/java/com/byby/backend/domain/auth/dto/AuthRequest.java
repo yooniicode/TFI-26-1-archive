@@ -28,4 +28,8 @@ public class AuthRequest {
             String name,
             String phone
     ) {}
+
+    public record BootstrapAdmin(
+            @NotBlank String secretCode
+    ) {}
 }

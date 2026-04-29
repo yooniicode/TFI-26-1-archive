@@ -29,6 +29,7 @@ export default function AuthCompletePage() {
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
+  const [bootstrapCode, setBootstrapCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -113,7 +114,12 @@ export default function AuthCompletePage() {
     setLoading(true)
     setError('')
     try {
-      await authApi.bootstrapAdmin()
+      if (!bootstrapCode.trim()) {
+        setError('관리자 초기 가입 코드를 입력해주세요.')
+        setLoading(false)
+        return
+      }
+      await authApi.bootstrapAdmin(bootstrapCode.trim())
       await createClient().auth.refreshSession()
       router.replace('/dashboard')
       router.refresh()
@@ -142,14 +148,23 @@ export default function AuthCompletePage() {
           </p>
           <div className="mt-6 space-y-2">
             {pendingRequest.role === 'admin' && (
-              <button
-                type="button"
-                className="btn-primary w-full"
-                disabled={loading}
-                onClick={handleBootstrapAdmin}
-              >
-                {loading ? '확인 중...' : '최초 센터 직원 계정 만들기'}
-              </button>
+              <>
+                <input
+                  className="input text-left"
+                  type="password"
+                  value={bootstrapCode}
+                  onChange={e => setBootstrapCode(e.target.value)}
+                  placeholder="관리자 초기 가입 코드"
+                />
+                <button
+                  type="button"
+                  className="btn-primary w-full"
+                  disabled={loading}
+                  onClick={handleBootstrapAdmin}
+                >
+                  {loading ? '확인 중...' : '최초 센터 직원 계정 만들기'}
+                </button>
+              </>
             )}
             <button
               type="button"

@@ -11,8 +11,14 @@ public class AuthResponse {
             UUID authUserId,
             UserRole role,
             String name,
-            UUID entityId
-    ) {}
+            UUID entityId,
+            String centerName,
+            String nickname
+    ) {
+        public Me(UUID authUserId, UserRole role, String name, UUID entityId) {
+            this(authUserId, role, name, entityId, null, null);
+        }
+    }
 
     public record Member(
             UUID authUserId,

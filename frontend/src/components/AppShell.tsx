@@ -37,6 +37,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [pendingRequest, setPendingRequest] = useState<RequestedMemberRole | null>(null)
   const [bootstrapLoading, setBootstrapLoading] = useState(false)
   const [bootstrapError, setBootstrapError] = useState('')
+  const [bootstrapCode, setBootstrapCode] = useState('')
 
   useEffect(() => {
     createClient().auth.getSession().then(({ data: { session } }) => {
@@ -54,7 +55,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setBootstrapLoading(true)
     setBootstrapError('')
     try {
-      await authApi.bootstrapAdmin()
+      if (!bootstrapCode.trim()) {
+        setBootstrapError('관리자 초기 가입 코드를 입력해주세요.')
+        setBootstrapLoading(false)
+        return
+      }
+      await authApi.bootstrapAdmin(bootstrapCode.trim())
       await createClient().auth.refreshSession()
       router.replace('/dashboard')
       router.refresh()
@@ -105,14 +111,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               센터 직원이 회원 관리에서 권한을 승인하면 이 계정으로 이용할 수 있습니다.
             </p>
             {pendingRequest?.role === 'admin' && (
-              <button
-                type="button"
-                onClick={handleBootstrapAdmin}
-                disabled={bootstrapLoading}
-                className="btn-primary w-full mb-2"
-              >
-                {bootstrapLoading ? '확인 중...' : '최초 센터 직원 계정 만들기'}
-              </button>
+              <>
+                <input
+                  className="input mb-2"
+                  type="password"
+                  value={bootstrapCode}
+                  onChange={e => setBootstrapCode(e.target.value)}
+                  placeholder="관리자 초기 가입 코드"
+                />
+                <button
+                  type="button"
+                  onClick={handleBootstrapAdmin}
+                  disabled={bootstrapLoading}
+                  className="btn-primary w-full mb-2"
+                >
+                  {bootstrapLoading ? '확인 중...' : '최초 센터 직원 계정 만들기'}
+                </button>
+              </>
             )}
             <button
               onClick={async () => {

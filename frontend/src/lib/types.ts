@@ -175,6 +175,8 @@ export interface AuthMe {
   role: UserRole
   name?: string | null
   entityId?: string | null
+  centerName?: string | null
+  nickname?: string | null
 }
 
 export interface Member {
@@ -207,4 +209,48 @@ export interface RegisterProfileRequest {
   region?: string
   workplaceName?: string
   interpreterRole?: InterpreterRole
+}
+
+export interface AdminProfile {
+  id: string
+  authUserId: string
+  centerName?: string | null
+  nickname?: string | null
+}
+
+export interface AdminWorkLogTask {
+  content: string
+  checked: boolean
+}
+
+export interface AdminWorkLog {
+  id: string
+  workDate: string
+  memo?: string | null
+  tasks: AdminWorkLogTask[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpsertAdminWorkLogRequest {
+  workDate: string
+  memo?: string
+  tasks: AdminWorkLogTask[]
+}
+
+export interface CenterPatientMemo {
+  id: string
+  patientId: string
+  adminAuthUserId: string
+  publicMemo?: string | null
+  privateMemo?: string | null
+  interpreterVisible: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpsertCenterPatientMemoRequest {
+  publicMemo?: string
+  privateMemo?: string
+  interpreterVisible: boolean
 }

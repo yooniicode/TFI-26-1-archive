@@ -5,6 +5,8 @@ import com.byby.backend.common.response.code.SuccessCode;
 import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
+import com.byby.backend.domain.admin.entity.AdminProfile;
+import com.byby.backend.domain.admin.service.AdminService;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.auth.dto.AuthRequest;
 import com.byby.backend.domain.auth.dto.AuthResponse;
@@ -31,6 +33,7 @@ public class AuthController {
     private final InterpreterRepository interpreterRepository;
     private final PatientRepository patientRepository;
     private final AuthService authService;
+    private final AdminService adminService;
 
     @GetMapping("/me")
     @Operation(summary = "내 인증/역할 정보 조회")
@@ -38,8 +41,11 @@ public class AuthController {
             @AuthenticationPrincipal UserPrincipal principal) {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
         if (principal.getRole() == com.byby.backend.common.enums.UserRole.admin) {
+            AdminProfile profile = adminService.getOrCreateProfile(principal.getAuthUserId());
+            String nickname = profile.getNickname() != null ? profile.getNickname() : "관리자";
             return ResponseEntity.ok(Response.success(SuccessCode.OK,
-                    new AuthResponse.Me(principal.getAuthUserId(), com.byby.backend.common.enums.UserRole.admin, "관리자", null)));
+                    new AuthResponse.Me(principal.getAuthUserId(), com.byby.backend.common.enums.UserRole.admin,
+                            nickname, null, profile.getCenterName(), profile.getNickname())));
         }
 
         // JWT role에 맞는 테이블을 먼저 확인, 없으면 반대 테이블 fallback
@@ -97,8 +103,9 @@ public class AuthController {
     @PostMapping("/bootstrap-admin")
     @Operation(summary = "최초 센터 직원 계정 생성", description = "승인 가능한 센터 직원이 아직 없을 때 현재 로그인 사용자를 최초 센터 직원으로 승격합니다.")
     public ResponseEntity<Response<AuthResponse.Me>> bootstrapAdmin(
+            @Valid @RequestBody AuthRequest.BootstrapAdmin req,
             @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.bootstrapAdmin(principal)));
+        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.bootstrapAdmin(req, principal)));
     }
 
     @GetMapping("/members")

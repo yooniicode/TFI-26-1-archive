@@ -5,6 +5,8 @@ import com.byby.backend.common.enums.UserRole;
 import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
+import com.byby.backend.domain.admin.entity.AdminProfile;
+import com.byby.backend.domain.admin.service.AdminService;
 import com.byby.backend.domain.auth.dto.AuthResponse;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
@@ -24,6 +26,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +45,7 @@ public class AuthService {
 
     private final PatientRepository patientRepository;
     private final InterpreterRepository interpreterRepository;
+    private final AdminService adminService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
@@ -50,6 +54,9 @@ public class AuthService {
 
     @Value("${byby.supabase.service-key:}")
     private String supabaseServiceKey;
+
+    @Value("${byby.admin.bootstrap-code:}")
+    private String adminBootstrapCode;
 
     @Transactional
     public void registerProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {
@@ -114,8 +121,11 @@ public class AuthService {
         }
     }
 
-    public AuthResponse.Me bootstrapAdmin(UserPrincipal principal) {
+    public AuthResponse.Me bootstrapAdmin(AuthRequest.BootstrapAdmin req, UserPrincipal principal) {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
+        if (!StringUtils.hasText(adminBootstrapCode) || !constantTimeEquals(adminBootstrapCode, req.secretCode())) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN, "관리자 초기 가입 코드가 올바르지 않습니다");
+        }
         if (!StringUtils.hasText(supabaseUrl) || !StringUtils.hasText(supabaseServiceKey)) {
             throw new GeneralException(GeneralErrorCode.INTERNAL_SERVER_ERROR, "Supabase service key is required");
         }
@@ -124,7 +134,10 @@ public class AuthService {
         }
 
         updateSupabaseRoleOrThrow(principal.getAuthUserId(), UserRole.admin);
-        return new AuthResponse.Me(principal.getAuthUserId(), UserRole.admin, "관리자", null);
+        AdminProfile profile = adminService.getOrCreateProfile(principal.getAuthUserId());
+        String name = StringUtils.hasText(profile.getNickname()) ? profile.getNickname() : "관리자";
+        return new AuthResponse.Me(principal.getAuthUserId(), UserRole.admin, name, null,
+                profile.getCenterName(), profile.getNickname());
     }
 
     @Transactional
@@ -409,6 +422,18 @@ public class AuthService {
         if (!StringUtils.hasText(email)) return null;
         int at = email.indexOf('@');
         return at > 0 ? email.substring(0, at) : email;
+    }
+
+    private boolean constantTimeEquals(String expected, String actual) {
+        if (actual == null) return false;
+        byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+        byte[] actualBytes = actual.getBytes(StandardCharsets.UTF_8);
+        if (expectedBytes.length != actualBytes.length) return false;
+        int result = 0;
+        for (int i = 0; i < expectedBytes.length; i++) {
+            result |= expectedBytes[i] ^ actualBytes[i];
+        }
+        return result == 0;
     }
 
     private void registerPatientProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {

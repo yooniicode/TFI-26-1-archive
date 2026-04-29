@@ -149,6 +149,8 @@ export const authMeSchema = z.object({
   role:       userRoleSchema,
   name:       z.string().nullable().optional(),
   entityId:   z.string().uuid().nullable().optional(),
+  centerName: z.string().nullable().optional(),
+  nickname:   z.string().nullable().optional(),
 })
 
 export const memberSchema = z.object({
@@ -161,6 +163,38 @@ export const memberSchema = z.object({
   interpreterId: z.string().uuid().nullable().optional(),
   profileRegistered: z.boolean(),
   approved: z.boolean(),
+})
+
+export const adminProfileSchema = z.object({
+  id: z.string().uuid(),
+  authUserId: z.string().uuid(),
+  centerName: z.string().nullable().optional(),
+  nickname: z.string().nullable().optional(),
+})
+
+export const adminWorkLogTaskSchema = z.object({
+  content: z.string(),
+  checked: z.boolean(),
+})
+
+export const adminWorkLogSchema = z.object({
+  id: z.string().uuid(),
+  workDate: z.string(),
+  memo: z.string().nullable().optional(),
+  tasks: z.array(adminWorkLogTaskSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export const centerPatientMemoSchema = z.object({
+  id: z.string().uuid(),
+  patientId: z.string().uuid(),
+  adminAuthUserId: z.string().uuid(),
+  publicMemo: z.string().nullable().optional(),
+  privateMemo: z.string().nullable().optional(),
+  interpreterVisible: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 })
 
 // ─── 배열 스키마 ─────────────────────────────────────────────
@@ -184,4 +218,9 @@ export const schemas = {
   authMe:        authMeSchema,
   member:        memberSchema,
   members:       z.array(memberSchema),
+  adminProfile:  adminProfileSchema,
+  adminWorkLog:  adminWorkLogSchema,
+  adminWorkLogs: z.array(adminWorkLogSchema),
+  centerPatientMemo: centerPatientMemoSchema,
+  centerPatientMemos: z.array(centerPatientMemoSchema),
 }

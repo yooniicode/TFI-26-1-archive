@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import AppShell from '@/components/AppShell'
-import { patientApi, interpreterApi } from '@/lib/api'
+import { adminApi, patientApi, interpreterApi } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { createClient } from '@/lib/supabase'
 import { useMe } from '@/hooks/useMe'
-import type { Patient, Interpreter, VisaType } from '@/lib/types'
+import type { AdminWorkLog, AdminWorkLogTask, Patient, Interpreter, VisaType } from '@/lib/types'
 import { VISA_LABEL } from '@/lib/types'
 import Spinner from '@/components/ui/Spinner'
 
@@ -27,12 +27,29 @@ export default function MyPage() {
     enabled: me?.role === 'interpreter' && !!me?.entityId,
   })
 
+  const { data: adminProfile, isLoading: adminProfileLoading } = useQuery({
+    queryKey: queryKeys.adminProfile,
+    queryFn: () => adminApi.profile().then(r => r.payload),
+    enabled: me?.role === 'admin',
+  })
+
+  const { data: workLogs = [], isLoading: workLogsLoading } = useQuery({
+    queryKey: queryKeys.adminWorkLogs(0),
+    queryFn: () => adminApi.workLogs(0).then(r => r.payload ?? []),
+    enabled: me?.role === 'admin',
+  })
+
   const [phone, setPhone] = useState('')
   const [region, setRegion] = useState('')
   const [workplaceName, setWorkplaceName] = useState('')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [visaNote, setVisaNote] = useState('')
   const [intPhone, setIntPhone] = useState('')
+  const [centerName, setCenterName] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [workDate, setWorkDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [workMemo, setWorkMemo] = useState('')
+  const [workTaskLines, setWorkTaskLines] = useState('')
 
   useEffect(() => {
     if (patient) {
@@ -48,6 +65,13 @@ export default function MyPage() {
     if (interpreter) setIntPhone(interpreter.phone ?? '')
   }, [interpreter])
 
+  useEffect(() => {
+    if (adminProfile) {
+      setCenterName(adminProfile.centerName ?? '')
+      setNickname(adminProfile.nickname ?? '')
+    }
+  }, [adminProfile])
+
   const { mutate: save, isPending: saving, isSuccess, error: saveError } = useMutation<unknown, Error>({
     mutationFn: () => {
       if (!me?.entityId) return Promise.reject(new Error('프로필 정보를 불러오지 못했습니다.'))
@@ -62,12 +86,54 @@ export default function MyPage() {
     },
   })
 
+  const { mutate: saveAdminProfile, isPending: savingAdminProfile, isSuccess: adminSaved, error: adminSaveError } =
+    useMutation<unknown, Error>({
+      mutationFn: () => adminApi.updateProfile({ centerName, nickname }),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.adminProfile })
+        queryClient.invalidateQueries({ queryKey: queryKeys.me })
+      },
+    })
+
+  const { mutate: createWorkLog, isPending: creatingWorkLog, error: workLogError } = useMutation<unknown, Error>({
+    mutationFn: () => adminApi.createWorkLog({
+      workDate,
+      memo: workMemo,
+      tasks: workTaskLines
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(content => ({ content, checked: false })),
+    }),
+    onSuccess: () => {
+      setWorkMemo('')
+      setWorkTaskLines('')
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminWorkLogs(0) })
+    },
+  })
+
+  const { mutate: updateWorkLog } = useMutation<unknown, Error, AdminWorkLog>({
+    mutationFn: (log) => adminApi.updateWorkLog(log.id, {
+      workDate: log.workDate,
+      memo: log.memo ?? '',
+      tasks: log.tasks,
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminWorkLogs(0) }),
+  })
+
+  function toggleTask(log: AdminWorkLog, index: number) {
+    const tasks: AdminWorkLogTask[] = log.tasks.map((task, idx) =>
+      idx === index ? { ...task, checked: !task.checked } : task,
+    )
+    updateWorkLog({ ...log, tasks })
+  }
+
   async function handleLogout() {
     await createClient().auth.signOut()
     window.location.href = '/login'
   }
 
-  const loading = meLoading || patientLoading || interpreterLoading
+  const loading = meLoading || patientLoading || interpreterLoading || adminProfileLoading || workLogsLoading
   if (loading) return <AppShell><Spinner /></AppShell>
   if (!meLoading && me && me.role !== 'admin' && !me.entityId) {
     window.location.replace('/auth/complete')
@@ -83,6 +149,83 @@ export default function MyPage() {
             {me?.role === 'admin' ? '센터 직원' : me?.role === 'interpreter' ? '통번역가' : '이주민'} · {me?.name}
           </p>
         </div>
+
+        {me?.role === 'admin' && (
+          <div className="space-y-6">
+            <form onSubmit={e => { e.preventDefault(); saveAdminProfile() }} className="space-y-4">
+              <div>
+                <label className="label">센터 이름(근무지)</label>
+                <input className="input" value={centerName} onChange={e => setCenterName(e.target.value)} placeholder="예: 동행센터" />
+              </div>
+              <div>
+                <label className="label">닉네임</label>
+                <input className="input" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="화면에 표시할 이름" />
+              </div>
+              {adminSaveError && <p className="text-red-500 text-xs">{adminSaveError.message}</p>}
+              {adminSaved && <p className="text-green-600 text-xs">관리자 정보가 저장되었습니다.</p>}
+              <button type="submit" className="btn-primary w-full" disabled={savingAdminProfile}>
+                {savingAdminProfile ? '저장 중...' : '관리자 정보 저장'}
+              </button>
+            </form>
+
+            <section className="border-t pt-5 space-y-4">
+              <div>
+                <h2 className="font-semibold">센터장 근무일지</h2>
+                <p className="text-xs text-gray-500 mt-1">날짜별 업무 내용을 체크리스트로 정리합니다.</p>
+              </div>
+
+              <form onSubmit={e => { e.preventDefault(); createWorkLog() }} className="space-y-3">
+                <div>
+                  <label className="label">날짜</label>
+                  <input type="date" className="input" value={workDate} onChange={e => setWorkDate(e.target.value)} required />
+                </div>
+                <div>
+                  <label className="label">업무 메모</label>
+                  <textarea className="input min-h-20" value={workMemo} onChange={e => setWorkMemo(e.target.value)} placeholder="오늘 처리한 주요 업무" />
+                </div>
+                <div>
+                  <label className="label">체크리스트</label>
+                  <textarea
+                    className="input min-h-24"
+                    value={workTaskLines}
+                    onChange={e => setWorkTaskLines(e.target.value)}
+                    placeholder={'한 줄에 하나씩 입력\n예: 신규 이주민 상담\n예: 병원 동행 일정 조율'}
+                  />
+                </div>
+                {workLogError && <p className="text-red-500 text-xs">{workLogError.message}</p>}
+                <button type="submit" className="btn-secondary w-full" disabled={creatingWorkLog}>
+                  {creatingWorkLog ? '저장 중...' : '근무일지 저장'}
+                </button>
+              </form>
+
+              <div className="space-y-2">
+                {workLogs.length === 0 && <p className="text-sm text-gray-400 text-center py-4">작성된 근무일지가 없습니다.</p>}
+                {workLogs.map(log => (
+                  <div key={log.id} className="card space-y-2">
+                    <div>
+                      <p className="text-sm font-semibold">{log.workDate}</p>
+                      {log.memo && <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{log.memo}</p>}
+                    </div>
+                    {log.tasks.length > 0 && (
+                      <div className="space-y-1">
+                        {log.tasks.map((task, idx) => (
+                          <label key={`${log.id}-${idx}`} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={task.checked}
+                              onChange={() => toggleTask(log, idx)}
+                            />
+                            <span className={task.checked ? 'line-through text-gray-400' : ''}>{task.content}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
 
         {me?.role !== 'admin' && (
           <form onSubmit={e => { e.preventDefault(); save() }} className="space-y-4">

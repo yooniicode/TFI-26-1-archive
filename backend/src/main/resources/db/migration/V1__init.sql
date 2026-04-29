@@ -36,6 +36,36 @@ CREATE TABLE interpreter (
 
 CREATE INDEX idx_interpreter_auth_user_id ON interpreter(auth_user_id);
 
+-- 센터 관리자 프로필
+CREATE TABLE admin_profile (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id UUID         NOT NULL UNIQUE,
+    center_name  VARCHAR(200),
+    nickname     VARCHAR(100),
+    created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_admin_profile_auth_user_id ON admin_profile(auth_user_id);
+
+-- 센터장 근무일지
+CREATE TABLE admin_work_log (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id UUID      NOT NULL,
+    work_date    DATE      NOT NULL,
+    memo         TEXT,
+    created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_admin_work_log_auth_date ON admin_work_log(auth_user_id, work_date DESC);
+
+CREATE TABLE admin_work_log_task (
+    work_log_id UUID         NOT NULL REFERENCES admin_work_log(id) ON DELETE CASCADE,
+    content     VARCHAR(500) NOT NULL,
+    checked     BOOLEAN      NOT NULL DEFAULT FALSE
+);
+
 -- 통번역가 사용 언어 (ElementCollection)
 CREATE TABLE interpreter_language (
     interpreter_id UUID         NOT NULL REFERENCES interpreter(id) ON DELETE CASCADE,
@@ -104,6 +134,21 @@ CREATE TABLE handover (
 
 CREATE INDEX idx_handover_patient_id ON handover(patient_id);
 
+-- 센터 관리자-이주민 메모
+CREATE TABLE center_patient_memo (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_auth_user_id  UUID      NOT NULL,
+    patient_id          UUID      NOT NULL REFERENCES patient(id),
+    public_memo         TEXT,
+    private_memo        TEXT,
+    interpreter_visible BOOLEAN   NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_center_patient_memo_patient_id ON center_patient_memo(patient_id);
+CREATE INDEX idx_center_patient_memo_admin_id ON center_patient_memo(admin_auth_user_id);
+
 -- 통번역가-이주민 매칭 (PatientMatch)
 CREATE TABLE patient_match (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -148,8 +193,9 @@ DO $$
 DECLARE
     t TEXT;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['patient','interpreter','hospital','consultation',
-                              'handover','patient_match','medical_script']
+    FOREACH t IN ARRAY ARRAY['patient','interpreter','admin_profile','admin_work_log',
+                              'hospital','consultation','handover','center_patient_memo',
+                              'patient_match','medical_script']
     LOOP
         EXECUTE format(
             'CREATE TRIGGER trg_%s_updated_at
