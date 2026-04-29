@@ -18,7 +18,6 @@
 [Spring Boot Backend]
   - JWT Filter / RBAC (ADMIN, INTERPRETER, PATIENT)
   - Domain APIs (환자, 통번역가, 상담, 인수인계, 매칭, 의료대본)
-  - Flyway Migration
         |
         v
 [PostgreSQL]
@@ -83,7 +82,7 @@
 | 프레임워크 | Spring Boot | 3.3.5 |
 | 빌드 도구 | Gradle | - |
 | ORM | Spring Data JPA (Hibernate) | - |
-| DB 마이그레이션 | Flyway | - |
+| DB 마이그레이션 | Flyway (비활성화 중, 설계 안정화 후 적용 예정) | - |
 | 인증 | Spring Security + JWT (JJWT) | 0.12.6 |
 | 인증 공급자 | Supabase (서비스 키 검증) | - |
 | HTTP 클라이언트 | Spring WebFlux RestClient | - |
@@ -117,28 +116,43 @@
 
 ## 6) 로컬 실행
 
-### 6.1 전체 스택 실행 (권장)
+### 사전 준비
 
-```bash
-make dev
+루트에 `.env.local` 파일이 있어야 합니다. `.env.example`을 복사해 작성하세요.
+
+### 6.1 전체 스택 실행 (권장, Docker)
+
+```powershell
+docker-compose --env-file .env.local up --build
 ```
 
 - `frontend`: `http://localhost:3000`
 - `backend`: `http://localhost:8080`
 - `db`: `localhost:5432`
 
-### 6.2 개별 실행
+### 6.2 개별 실행 (Windows PowerShell)
 
-```bash
+```powershell
 # DB만 실행
-make db
+docker-compose --env-file .env.local up db
 
-# 백엔드 실행
-make backend
+# 백엔드 실행 (터미널 1)
+docker-compose --env-file .env.local up db backend
 
-# 프론트 실행
-make install
-make frontend
+# 프론트 로컬 실행 (터미널 2)
+cd frontend
+npm install
+npm run dev
+```
+
+백엔드를 Docker 없이 직접 실행할 경우:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="local"
+$env:JWT_SECRET="<Supabase JWT Secret>"
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/byby"
+cd backend
+.\gradlew bootRun
 ```
 
 ## 7) 환경 변수
@@ -156,9 +170,9 @@ make frontend
 
 ## 8) 데이터베이스 마이그레이션
 
-- Flyway 사용 (`backend/src/main/resources/db/migration`)
-- 앱 시작 시 자동 반영
-- 초기 스키마: `V1__init.sql`
+현재 엔티티 설계가 진행 중이므로 Flyway는 비활성화 상태입니다. `ddl-auto: update`로 Hibernate가 스키마를 자동 반영합니다.
+
+엔티티 설계가 안정화되면 Flyway를 활성화하고 마이그레이션 파일(`backend/src/main/resources/db/migration`)을 관리할 예정입니다.
 
 ## 9) CI/CD 파이프라인
 
@@ -189,6 +203,5 @@ make frontend
 │     ├─ components/
 │     └─ lib/
 ├─ docker-compose.yml
-├─ Makefile
 └─ .github/workflows/deploy.yml
 ```
