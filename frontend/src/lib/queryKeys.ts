@@ -1,5 +1,6 @@
 export const queryKeys = {
   me: ['me'] as const,
+  members: ['members'] as const,
 
   patients: {
     list:      (page: number, query = '') => ['patients', 'list', page, query] as const,

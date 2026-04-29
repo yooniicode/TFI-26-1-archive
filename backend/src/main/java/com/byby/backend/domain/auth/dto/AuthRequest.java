@@ -21,4 +21,11 @@ public class AuthRequest {
             String workplaceName,
             InterpreterRole interpreterRole
     ) {}
+
+    public record UpdateMemberRole(
+            UserRole role,
+            InterpreterRole interpreterRole,
+            String name,
+            String phone
+    ) {}
 }

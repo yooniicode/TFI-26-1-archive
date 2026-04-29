@@ -10,13 +10,14 @@ import clsx from 'clsx'
 interface NavItem { href: string; label: string; icon: string; roles: UserRole[] }
 
 const NAV: NavItem[] = [
-  { href: '/dashboard',     label: '홈',       icon: '🏠', roles: ['admin','interpreter','patient'] },
-  { href: '/consultations', label: '보고서',   icon: '📝', roles: ['admin','interpreter'] },
-  { href: '/patients',      label: '이주민',   icon: '👥', roles: ['admin','interpreter'] },
-  { href: '/handovers',     label: '인수인계', icon: '🔄', roles: ['admin','interpreter'] },
-  { href: '/matching',      label: '매칭',     icon: '🔀', roles: ['admin'] },
-  { href: '/interpreters',  label: '통번역가', icon: '🧑‍💼', roles: ['admin'] },
-  { href: '/my-records',   label: '내 기록',  icon: '📋', roles: ['patient'] },
+  { href: '/dashboard',     label: '홈',       icon: '⌂', roles: ['admin','interpreter','patient'] },
+  { href: '/consultations', label: '보고서',   icon: '□', roles: ['admin','interpreter'] },
+  { href: '/patients',      label: '이주민',   icon: '◇', roles: ['admin','interpreter'] },
+  { href: '/handovers',     label: '인수인계', icon: '↔', roles: ['admin','interpreter'] },
+  { href: '/matching',      label: '매칭',     icon: '◎', roles: ['admin'] },
+  { href: '/interpreters',  label: '통번역가', icon: '▣', roles: ['admin'] },
+  { href: '/members',       label: '회원',     icon: '○', roles: ['admin'] },
+  { href: '/my-records',    label: '내 기록',  icon: '□', roles: ['patient'] },
 ]
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -31,17 +32,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const visibleNav = me ? NAV.filter(n => n.roles.includes(me.role)) : []
-  const needsProfile = !!me && !me.entityId && !pathname.startsWith('/auth/')
+  const needsProfile = !!me && me.role !== 'admin' && !me.entityId && !pathname.startsWith('/auth/')
 
   return (
     <div className="min-h-screen flex flex-col max-w-lg mx-auto bg-white shadow-sm">
       {needsProfile && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pb-10">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <p className="text-lg mb-1">👋 반갑습니다!</p>
+            <p className="text-lg mb-1">반갑습니다</p>
             <h2 className="text-base font-bold mb-2">기본 정보를 입력해 주세요</h2>
             <p className="text-sm text-gray-500 mb-5">
-              서비스 이용을 위해 이름과 역할을 먼저 등록해 주세요.
+              서비스 이용을 위해 이름과 역할 정보를 먼저 등록해 주세요.
             </p>
             <button
               onClick={() => router.push('/auth/complete')}
@@ -60,7 +61,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <span className="font-bold text-primary-700 text-lg">TFI</span>
+        <Link href="/dashboard" className="font-bold text-primary-700 text-lg">TFI</Link>
         <div className="flex items-center gap-3">
           {me && (
             <span className="text-xs text-gray-500">
@@ -85,14 +86,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             key={item.href}
             href={item.href}
             className={clsx(
-              'flex flex-col items-center py-2 px-3 text-xs gap-0.5 flex-1',
+              'flex flex-col items-center py-2 px-2 text-xs gap-0.5 flex-1',
               pathname.startsWith(item.href)
                 ? 'text-primary-600 font-semibold'
                 : 'text-gray-400',
             )}
           >
-            <span className="text-lg">{item.icon}</span>
-            {item.label}
+            <span className="text-base">{item.icon}</span>
+            <span className="truncate">{item.label}</span>
           </Link>
         ))}
       </nav>

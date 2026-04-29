@@ -151,6 +151,17 @@ export const authMeSchema = z.object({
   entityId:   z.string().uuid().nullable().optional(),
 })
 
+export const memberSchema = z.object({
+  authUserId: z.string().uuid(),
+  email: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  role: z.enum(['admin', 'interpreter']),
+  interpreterRole: interpreterRoleSchema.nullable().optional(),
+  interpreterId: z.string().uuid().nullable().optional(),
+  profileRegistered: z.boolean(),
+})
+
 // ─── 배열 스키마 ─────────────────────────────────────────────
 export const schemas = {
   patient:       patientSchema,
@@ -170,4 +181,6 @@ export const schemas = {
   script:        medicalScriptSchema,
   scripts:       z.array(medicalScriptSchema),
   authMe:        authMeSchema,
+  member:        memberSchema,
+  members:       z.array(memberSchema),
 }

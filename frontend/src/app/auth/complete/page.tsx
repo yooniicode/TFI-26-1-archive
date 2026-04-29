@@ -4,21 +4,20 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
 import { createClient } from '@/lib/supabase'
-import type { Gender, InterpreterRole, Nationality, UserRole, VisaType } from '@/lib/types'
+import type { Gender, Nationality, UserRole, VisaType } from '@/lib/types'
 
 export default function AuthCompletePage() {
   const router = useRouter()
   const [checking, setChecking] = useState(true)
   const [needsProfile, setNeedsProfile] = useState(false)
   const [isOtpUser, setIsOtpUser] = useState(false)
+  const [role, setRole] = useState<Extract<UserRole, 'interpreter' | 'patient'>>('patient')
 
   const [name, setName] = useState('')
-  const [role, setRole] = useState<Extract<UserRole, 'interpreter' | 'patient'>>('patient')
   const [phone, setPhone] = useState('')
   const [nationality, setNationality] = useState<Nationality>('OTHER')
   const [gender, setGender] = useState<Gender>('OTHER')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
-  const [interpreterRole, setInterpreterRole] = useState<InterpreterRole>('FREELANCER')
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,33 +35,6 @@ export default function AuthCompletePage() {
       const metadata = session.user.user_metadata ?? {}
       if (typeof metadata.name === 'string') setName(metadata.name)
       if (typeof metadata.phone === 'string') setPhone(metadata.phone)
-      if (metadata.role === 'interpreter' || metadata.app_role === 'interpreter') {
-        setRole('interpreter')
-      }
-      if (metadata.nationality === 'VIETNAM' || metadata.nationality === 'CHINA' ||
-          metadata.nationality === 'CAMBODIA' || metadata.nationality === 'MYANMAR' ||
-          metadata.nationality === 'PHILIPPINES' || metadata.nationality === 'INDONESIA' ||
-          metadata.nationality === 'THAILAND' || metadata.nationality === 'NEPAL' ||
-          metadata.nationality === 'MONGOLIA' || metadata.nationality === 'UZBEKISTAN' ||
-          metadata.nationality === 'SRI_LANKA' || metadata.nationality === 'BANGLADESH' ||
-          metadata.nationality === 'PAKISTAN' || metadata.nationality === 'OTHER') {
-        setNationality(metadata.nationality)
-      }
-      if (metadata.gender === 'MALE' || metadata.gender === 'FEMALE' || metadata.gender === 'OTHER') {
-        setGender(metadata.gender)
-      }
-      if (metadata.visa_type === 'E9' || metadata.visa_type === 'E6' ||
-          metadata.visa_type === 'F1' || metadata.visa_type === 'F2' ||
-          metadata.visa_type === 'F4' || metadata.visa_type === 'F5' ||
-          metadata.visa_type === 'F6' || metadata.visa_type === 'H2' ||
-          metadata.visa_type === 'D2' || metadata.visa_type === 'U' ||
-          metadata.visa_type === 'OTHER') {
-        setVisaType(metadata.visa_type)
-      }
-      if (metadata.interpreter_role === 'ACTIVIST' || metadata.interpreter_role === 'FREELANCER' ||
-          metadata.interpreter_role === 'STAFF') {
-        setInterpreterRole(metadata.interpreter_role)
-      }
 
       try {
         const b64 = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
@@ -72,6 +44,11 @@ export default function AuthCompletePage() {
 
       authApi.me()
         .then((res) => {
+          if (res.payload.role === 'admin') {
+            router.replace('/dashboard')
+            return
+          }
+          if (res.payload.role === 'interpreter') setRole('interpreter')
           if (res.payload?.entityId) {
             router.replace('/dashboard')
           } else {
@@ -83,18 +60,19 @@ export default function AuthCompletePage() {
           router.replace('/login')
         })
         .finally(() => setChecking(false))
-      })
+    })
   }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (role === 'patient' && !phone.trim()) { setError('연락처를 입력해주세요.'); return }
     if (!name.trim()) { setError('이름을 입력해주세요.'); return }
+    if (role === 'patient' && !phone.trim()) { setError('연락처를 입력해주세요.'); return }
     if (isOtpUser && newPassword) {
       if (newPassword.length < 8) { setError('비밀번호는 8자 이상이어야 합니다.'); return }
       if (newPassword !== newPasswordConfirm) { setError('비밀번호가 일치하지 않습니다.'); return }
     }
-    setLoading(true); setError('')
+    setLoading(true)
+    setError('')
     try {
       await authApi.registerProfile({
         name: name.trim(),
@@ -103,7 +81,7 @@ export default function AuthCompletePage() {
         nationality: role === 'patient' ? nationality : undefined,
         gender: role === 'patient' ? gender : undefined,
         visaType: role === 'patient' ? visaType : undefined,
-        interpreterRole: role === 'interpreter' ? interpreterRole : undefined,
+        interpreterRole: role === 'interpreter' ? 'FREELANCER' : undefined,
       })
       if (isOtpUser && newPassword) {
         await createClient().auth.updateUser({ password: newPassword })
@@ -131,7 +109,9 @@ export default function AuthCompletePage() {
       <div className="card max-w-sm w-full">
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold text-primary-700">프로필 설정</h1>
-          <p className="text-sm text-gray-500 mt-1">처음 로그인하셨군요! 정보를 입력해주세요.</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {role === 'interpreter' ? '통번역가 기본 정보를 입력해주세요.' : '이주민 기본 정보를 입력해주세요.'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -142,39 +122,12 @@ export default function AuthCompletePage() {
               className="input"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="이름"
               required
             />
           </div>
 
           <div>
-            <label className="label">역할</label>
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { value: 'patient', label: '이주민', desc: '의료·법률 통번역 지원이 필요해요' },
-                { value: 'interpreter', label: '통번역가', desc: '통번역 활동가·프리랜서·센터직원' },
-              ] as const).map(({ value, label, desc }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setRole(value)}
-                  className={`rounded-lg border-2 p-3 text-left transition-colors ${
-                    role === value
-                      ? 'border-primary-600 bg-primary-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <p className={`text-sm font-semibold ${role === value ? 'text-primary-700' : 'text-gray-700'}`}>
-                    {label}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="label">연락처(선택)</label>
+            <label className="label">연락처</label>
             <input
               type="text"
               className="input"
@@ -208,8 +161,8 @@ export default function AuthCompletePage() {
               <div>
                 <label className="label">성별</label>
                 <select className="input" value={gender} onChange={e => setGender(e.target.value as Gender)}>
-                  <option value="MALE">남</option>
-                  <option value="FEMALE">여</option>
+                  <option value="MALE">남성</option>
+                  <option value="FEMALE">여성</option>
                   <option value="OTHER">기타</option>
                 </select>
               </div>
@@ -232,20 +185,9 @@ export default function AuthCompletePage() {
             </>
           )}
 
-          {role === 'interpreter' && (
-            <div>
-              <label className="label">통번역가 구분</label>
-              <select className="input" value={interpreterRole} onChange={e => setInterpreterRole(e.target.value as InterpreterRole)}>
-                <option value="ACTIVIST">통번역활동가</option>
-                <option value="FREELANCER">프리랜서</option>
-                <option value="STAFF">센터직원</option>
-              </select>
-            </div>
-          )}
-
           {isOtpUser && (
             <div className="border-t pt-4 space-y-3">
-              <p className="text-xs text-gray-500">비밀번호를 설정하면 이메일+비밀번호로도 로그인할 수 있어요. (선택)</p>
+              <p className="text-xs text-gray-500">비밀번호를 설정하면 이메일/비밀번호로도 로그인할 수 있습니다. 선택 사항입니다.</p>
               <div>
                 <label className="label">비밀번호</label>
                 <input
@@ -264,7 +206,6 @@ export default function AuthCompletePage() {
                     className="input"
                     value={newPasswordConfirm}
                     onChange={e => setNewPasswordConfirm(e.target.value)}
-                    placeholder="비밀번호 재입력"
                   />
                 </div>
               )}

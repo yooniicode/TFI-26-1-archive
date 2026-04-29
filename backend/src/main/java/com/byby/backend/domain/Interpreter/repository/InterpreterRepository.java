@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,6 +17,8 @@ public interface InterpreterRepository extends JpaRepository<Interpreter, UUID> 
     Optional<Interpreter> findByAuthUserId(UUID authUserId);
 
     boolean existsByAuthUserId(UUID authUserId);
+
+    List<Interpreter> findByAuthUserIdIn(Collection<UUID> authUserIds);
 
     @Query("""
             SELECT DISTINCT i FROM Interpreter i

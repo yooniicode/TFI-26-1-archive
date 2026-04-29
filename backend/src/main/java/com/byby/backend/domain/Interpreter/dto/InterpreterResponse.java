@@ -17,7 +17,7 @@ public class InterpreterResponse {
             boolean active
     ) {
         public static Summary from(Interpreter i) {
-            return new Summary(i.getId(), i.getName(), i.getRole(), i.getLanguages(), i.isActive());
+            return new Summary(i.getId(), i.getName(), i.getRole(), List.copyOf(i.getLanguages()), i.isActive());
         }
     }
 
@@ -32,7 +32,7 @@ public class InterpreterResponse {
     ) {
         public static Detail from(Interpreter i) {
             return new Detail(i.getId(), i.getName(), i.getPhone(), i.getRole(),
-                    i.getLanguages(), i.isActive(), i.getCreatedAt());
+                    List.copyOf(i.getLanguages()), i.isActive(), i.getCreatedAt());
         }
     }
 }

@@ -181,15 +181,6 @@ public class JwtUtil {
             if (r != null) return r.toString();
         }
 
-        // Supabase signUp options.data -> user_metadata
-        Object userMeta = claims.get("user_metadata");
-        if (userMeta instanceof java.util.Map<?, ?> map) {
-            Object appRole = map.get("app_role");
-            Object role = map.get("role");
-            if (appRole != null) return appRole.toString();
-            if (role != null) return role.toString();
-        }
-
         return null;
     }
 
@@ -197,11 +188,7 @@ public class JwtUtil {
         String roleStr = text(user.path("app_metadata"), "app_role");
         if (roleStr != null) return roleStr;
 
-        JsonNode userMetadata = user.path("user_metadata");
-        roleStr = text(userMetadata, "app_role");
-        if (roleStr != null) return roleStr;
-
-        return text(userMetadata, "role");
+        return null;
     }
 
     private UserRole resolveRole(String roleStr) {

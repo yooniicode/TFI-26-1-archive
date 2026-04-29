@@ -15,8 +15,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -88,5 +92,23 @@ public class AuthController {
             @AuthenticationPrincipal UserPrincipal principal) {
         authService.registerProfile(req, principal);
         return ResponseEntity.status(201).body(Response.success(SuccessCode.CREATED));
+    }
+
+    @GetMapping("/members")
+    @PreAuthorize("hasRole('admin')")
+    @Operation(summary = "비이주민 회원 목록 조회")
+    public ResponseEntity<Response<List<AuthResponse.Member>>> getNonPatientMembers(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.getNonPatientMembers(principal)));
+    }
+
+    @PatchMapping("/members/{authUserId}/role")
+    @PreAuthorize("hasRole('admin')")
+    @Operation(summary = "비이주민 회원 역할 변경")
+    public ResponseEntity<Response<AuthResponse.Member>> updateMemberRole(
+            @PathVariable UUID authUserId,
+            @Valid @RequestBody AuthRequest.UpdateMemberRole req,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.updateMemberRole(authUserId, req, principal)));
     }
 }

@@ -177,6 +177,24 @@ export interface AuthMe {
   entityId?: string | null
 }
 
+export interface Member {
+  authUserId: string
+  email?: string | null
+  name?: string | null
+  phone?: string | null
+  role: Extract<UserRole, 'admin' | 'interpreter'>
+  interpreterRole?: InterpreterRole | null
+  interpreterId?: string | null
+  profileRegistered: boolean
+}
+
+export interface UpdateMemberRoleRequest {
+  role: Extract<UserRole, 'admin' | 'interpreter'>
+  interpreterRole?: InterpreterRole
+  name?: string
+  phone?: string
+}
+
 export interface RegisterProfileRequest {
   name: string
   role?: Extract<UserRole, 'interpreter' | 'patient'>

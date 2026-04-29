@@ -59,6 +59,9 @@ public class InterpreterService {
         if (!principal.isAdmin() && !interpreter.getAuthUserId().equals(principal.getAuthUserId())) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
+        if (!principal.isAdmin() && req.role() != null && req.role() != interpreter.getRole()) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN, "Only center staff can change interpreter roles");
+        }
         interpreter.updateInfo(req.phone(), req.role());
         return InterpreterResponse.Detail.from(interpreter);
     }

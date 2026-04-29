@@ -55,6 +55,12 @@ public class Interpreter extends BaseEntity {
         if (role != null) this.role = role;
     }
 
+    public void updateAdminInfo(String name, String phone, InterpreterRole role) {
+        if (name != null) this.name = name;
+        if (phone != null) this.phone = phone;
+        if (role != null) this.role = role;
+    }
+
     public void deactivate() {
         this.active = false;
     }

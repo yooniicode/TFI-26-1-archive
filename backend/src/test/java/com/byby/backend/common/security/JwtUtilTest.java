@@ -32,7 +32,7 @@ class JwtUtilTest {
         UserPrincipal principal = jwtUtil.toPrincipal(token);
 
         assertThat(principal.getAuthUserId()).isEqualTo(AUTH_USER_ID);
-        assertThat(principal.getRole()).isEqualTo(UserRole.interpreter);
+        assertThat(principal.getRole()).isEqualTo(UserRole.patient);
     }
 
     @Test

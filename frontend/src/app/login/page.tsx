@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import type { Gender, InterpreterRole, Nationality, UserRole, VisaType } from '@/lib/types'
+import type { Gender, Nationality, VisaType } from '@/lib/types'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,11 +12,10 @@ export default function LoginPage() {
   const [name, setName] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('')
-  const [role, setRole] = useState<Extract<UserRole, 'interpreter' | 'patient'>>('patient')
+  const [accountType, setAccountType] = useState<'patient' | 'member'>('patient')
   const [nationality, setNationality] = useState<Nationality>('OTHER')
   const [gender, setGender] = useState<Gender>('OTHER')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
-  const [interpreterRole, setInterpreterRole] = useState<InterpreterRole>('FREELANCER')
   const [phone, setPhone] = useState('')
   const [isSignupMode, setIsSignupMode] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -65,13 +64,13 @@ export default function LoginPage() {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           name: name.trim(),
-          app_role: role,
-          role,
           phone,
-          nationality,
-          gender,
-          visa_type: visaType,
-          interpreter_role: interpreterRole,
+          requested_role: accountType === 'member' ? 'interpreter' : 'patient',
+          ...(accountType === 'patient' ? {
+            nationality,
+            gender,
+            visa_type: visaType,
+          } : {}),
         },
       },
     })
@@ -146,23 +145,23 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="label">역할</label>
+              <label className="label">가입 유형</label>
               <div className="grid grid-cols-2 gap-2">
                 {([
                   { value: 'patient', label: '이주민', desc: '의료·법률 통번역 지원이 필요해요' },
-                  { value: 'interpreter', label: '통번역가', desc: '통번역 활동가·프리랜서·센터직원' },
+                  { value: 'member', label: '운영진·통번역가', desc: '센터 직원 승인 후 권한이 열려요' },
                 ] as const).map(({ value, label, desc }) => (
                   <button
                     key={value}
                     type="button"
-                    onClick={() => setRole(value)}
+                    onClick={() => setAccountType(value)}
                     className={`rounded-lg border-2 p-3 text-left transition-colors ${
-                      role === value
+                      accountType === value
                         ? 'border-primary-600 bg-primary-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <p className={`text-sm font-semibold ${role === value ? 'text-primary-700' : 'text-gray-700'}`}>
+                    <p className={`text-sm font-semibold ${accountType === value ? 'text-primary-700' : 'text-gray-700'}`}>
                       {label}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
@@ -191,7 +190,7 @@ export default function LoginPage() {
                 placeholder="010-0000-0000"
               />
             </div>
-            {role === 'patient' && (
+            {accountType === 'patient' && (
               <>
                 <div>
                   <label className="label">국적</label>
@@ -237,16 +236,6 @@ export default function LoginPage() {
                   </select>
                 </div>
               </>
-            )}
-            {role === 'interpreter' && (
-              <div>
-                <label className="label">통번역가 구분</label>
-                <select className="input" value={interpreterRole} onChange={e => setInterpreterRole(e.target.value as InterpreterRole)}>
-                  <option value="ACTIVIST">통번역활동가</option>
-                  <option value="FREELANCER">프리랜서</option>
-                  <option value="STAFF">센터직원</option>
-                </select>
-              </div>
             )}
             <div>
               <label className="label">비밀번호</label>
