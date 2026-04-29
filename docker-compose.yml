@@ -6,9 +6,9 @@ services:
     ports:
       - "${DB_PORT:-5432}:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-byby}
+      POSTGRES_USER: ${POSTGRES_USER:-byby}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-byby123}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -18,16 +18,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    env_file:
+      - .env.local
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      SUPABASE_URL: ${SUPABASE_URL}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
-      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY}
-      CLAUDE_API_KEY: ${CLAUDE_API_KEY}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-byby}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-byby}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-byby123}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       BYBY_SECURITY_CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
     depends_on:
@@ -39,14 +36,14 @@ services:
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_URL: http://backend:8080
       dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     env_file:
       - .env.local
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      - NEXT_PUBLIC_API_URL=http://backend:8080
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
 volumes:
