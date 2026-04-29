@@ -32,7 +32,7 @@ public class PatientController {
     private final ConsultationService consultationService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
+    @PreAuthorize("hasAnyRole('admin', 'patient')")
     @Operation(summary = "이주민 생성")
     public ResponseEntity<Response<PatientResponse.Detail>> create(
             @Valid @RequestBody PatientRequest.Create req,

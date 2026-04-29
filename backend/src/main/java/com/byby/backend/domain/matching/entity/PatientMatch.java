@@ -9,8 +9,7 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "patient_match",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"patient_id", "active"}, name = "uq_patient_active_match"))
+@Table(name = "patient_match")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PatientMatch extends BaseEntity {

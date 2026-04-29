@@ -8,6 +8,9 @@ import com.byby.backend.common.enums.ScriptType;
 import com.byby.backend.common.security.UserPrincipal;
 import com.byby.backend.domain.consultation.entity.Consultation;
 import com.byby.backend.domain.consultation.repository.ConsultationRepository;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
+import com.byby.backend.domain.matching.repository.PatientMatchRepository;
 import com.byby.backend.domain.medicalscript.dto.ScriptRequest;
 import com.byby.backend.domain.medicalscript.dto.ScriptResponse;
 import com.byby.backend.domain.medicalscript.entity.MedicalScript;
@@ -37,6 +40,8 @@ public class MedicalScriptService {
     private final MedicalScriptRepository scriptRepository;
     private final PatientRepository patientRepository;
     private final ConsultationRepository consultationRepository;
+    private final InterpreterRepository interpreterRepository;
+    private final PatientMatchRepository patientMatchRepository;
     private final RestClient restClient;
 
     @Value("${byby.claude.model}")
@@ -55,6 +60,7 @@ public class MedicalScriptService {
         } else if (principal.isAdmin() || principal.isInterpreter()) {
             patient = patientRepository.findById(req.patientId())
                     .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
+            requireAssignedIfInterpreter(patient.getId(), principal);
         } else {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
@@ -83,7 +89,9 @@ public class MedicalScriptService {
             if (!self.getId().equals(patientId)) {
                 throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_OWNER);
             }
-        } else if (!principal.isAdmin() && !principal.isInterpreter()) {
+        } else if (principal.isInterpreter()) {
+            requireAssignedIfInterpreter(patientId, principal);
+        } else if (!principal.isAdmin()) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
         return scriptRepository.findByPatientId(patientId, pageable).map(ScriptResponse.Summary::from);
@@ -98,8 +106,21 @@ public class MedicalScriptService {
             if (!self.getId().equals(script.getPatient().getId())) {
                 throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_OWNER);
             }
+        } else if (principal.isInterpreter()) {
+            requireAssignedIfInterpreter(script.getPatient().getId(), principal);
+        } else if (!principal.isAdmin()) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
         return ScriptResponse.Detail.from(script);
+    }
+
+    private void requireAssignedIfInterpreter(UUID patientId, UserPrincipal principal) {
+        if (!principal.isInterpreter()) return;
+        Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+                .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+        if (!patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(patientId, interpreter.getId())) {
+            throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
+        }
     }
 
     private String buildPrompt(Patient patient, Consultation consultation, ScriptRequest.Generate req) {

@@ -29,7 +29,7 @@ public class PatientMatchController {
     private final PatientMatchService patientMatchService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
+    @PreAuthorize("hasRole('admin')")
     @Operation(summary = "매칭 생성/재배정")
     public ResponseEntity<Response<MatchResponse.Detail>> create(
             @Valid @RequestBody MatchRequest.Create req,
@@ -39,7 +39,7 @@ public class PatientMatchController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
+    @PreAuthorize("hasRole('admin')")
     @Operation(summary = "활성 매칭 목록 조회")
     public ResponseEntity<Response<List<MatchResponse.Detail>>> getAll(
             @PageableDefault(size = 20) Pageable pageable,
@@ -49,7 +49,7 @@ public class PatientMatchController {
     }
 
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyRole('interpreter', 'admin', 'patient')")
+    @PreAuthorize("hasRole('admin')")
     @Operation(summary = "환자별 활성 매칭 조회")
     public ResponseEntity<Response<MatchResponse.Detail>> getByPatient(
             @PathVariable UUID patientId,
@@ -59,7 +59,7 @@ public class PatientMatchController {
     }
 
     @DeleteMapping("/{matchId}")
-    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
+    @PreAuthorize("hasRole('admin')")
     @Operation(summary = "매칭 비활성화")
     public ResponseEntity<Response<Void>> deactivate(
             @PathVariable UUID matchId,

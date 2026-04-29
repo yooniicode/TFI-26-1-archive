@@ -43,6 +43,9 @@ public class HandoverService {
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
         Interpreter fromInterpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+        if (!patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(patient.getId(), fromInterpreter.getId())) {
+            throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
+        }
         Consultation consultation = req.consultationId() != null
                 ? consultationRepository.findById(req.consultationId()).orElse(null)
                 : null;
@@ -60,6 +63,13 @@ public class HandoverService {
     public Page<HandoverResponse.Detail> getByPatient(UUID patientId, Pageable pageable, UserPrincipal principal) {
         if (!principal.isAdmin() && !principal.isInterpreter()) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
+        }
+        if (principal.isInterpreter()) {
+            Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+                    .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+            if (!patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(patientId, interpreter.getId())) {
+                throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
+            }
         }
         return handoverRepository.findByPatientIdOrderByCreatedAtDesc(patientId, pageable)
                 .map(HandoverResponse.Detail::from);

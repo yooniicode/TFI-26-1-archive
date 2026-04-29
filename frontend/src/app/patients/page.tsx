@@ -96,8 +96,15 @@ export default function PatientsPage() {
   return (
     <AppShell>
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-lg font-bold">이주민 목록</h1>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold">이주민 목록</h1>
+            {me?.role === 'interpreter' && (
+              <p className="text-xs text-gray-500 mt-1">
+                센터장이 매칭 승인한 이주민만 검색됩니다.
+              </p>
+            )}
+          </div>
           {me?.role === 'admin' && (
             <button
               type="button"
@@ -227,7 +234,13 @@ export default function PatientsPage() {
         {loading ? (
           <Spinner />
         ) : items.length === 0 ? (
-          <EmptyState message="등록된 이주민이 없습니다." />
+          <EmptyState
+            message={
+              me?.role === 'interpreter'
+                ? '현재 매칭된 이주민이 없습니다.'
+                : '등록된 이주민이 없습니다.'
+            }
+          />
         ) : (
           <div className="space-y-2">
             {items.map(p => (

@@ -7,6 +7,7 @@ import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
+import com.byby.backend.domain.matching.repository.PatientMatchRepository;
 import com.byby.backend.domain.patient.dto.PatientRequest;
 import com.byby.backend.domain.patient.dto.PatientResponse;
 import com.byby.backend.domain.patient.entity.Patient;
@@ -26,6 +27,7 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final InterpreterRepository interpreterRepository;
+    private final PatientMatchRepository patientMatchRepository;
 
     @Transactional
     public PatientResponse.Detail create(PatientRequest.Create req, UserPrincipal principal) {
@@ -96,6 +98,15 @@ public class PatientService {
             }
             return;
         }
-        // INTERPRETER: 배정된 환자만 접근 가능 (PatientMatch는 PatientMatchService에서 별도 검증)
+        if (principal.isInterpreter()) {
+            Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+                    .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+            if (!patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(
+                    patient.getId(), interpreter.getId())) {
+                throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
+            }
+            return;
+        }
+        throw new GeneralException(GeneralErrorCode.FORBIDDEN);
     }
 }

@@ -14,6 +14,9 @@ import com.byby.backend.domain.admin.entity.CenterPatientMemo;
 import com.byby.backend.domain.admin.repository.AdminProfileRepository;
 import com.byby.backend.domain.admin.repository.AdminWorkLogRepository;
 import com.byby.backend.domain.admin.repository.CenterPatientMemoRepository;
+import com.byby.backend.domain.interpreter.entity.Interpreter;
+import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
+import com.byby.backend.domain.matching.repository.PatientMatchRepository;
 import com.byby.backend.domain.patient.entity.Patient;
 import com.byby.backend.domain.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,8 @@ public class AdminService {
     private final AdminWorkLogRepository adminWorkLogRepository;
     private final CenterPatientMemoRepository centerPatientMemoRepository;
     private final PatientRepository patientRepository;
+    private final InterpreterRepository interpreterRepository;
+    private final PatientMatchRepository patientMatchRepository;
 
     @Transactional
     public AdminResponse.Profile getProfile(UserPrincipal principal) {
@@ -103,6 +108,7 @@ public class AdminService {
             return centerPatientMemoRepository.findByPatientIdOrderByCreatedAtDesc(patientId, pageable)
                     .map(memo -> AdminResponse.PatientMemo.from(memo, true));
         }
+        requireAssignedInterpreter(patientId, principal);
         return centerPatientMemoRepository
                 .findByPatientIdAndInterpreterVisibleTrueOrderByCreatedAtDesc(patientId, pageable)
                 .map(memo -> AdminResponse.PatientMemo.from(memo, false));
@@ -160,6 +166,14 @@ public class AdminService {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
         if (!principal.isAdmin() && !principal.isInterpreter()) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void requireAssignedInterpreter(UUID patientId, UserPrincipal principal) {
+        Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+                .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+        if (!patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(patientId, interpreter.getId())) {
+            throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
         }
     }
 

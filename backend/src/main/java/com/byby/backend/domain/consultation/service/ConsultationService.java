@@ -13,6 +13,7 @@ import com.byby.backend.domain.consultation.entity.Consultation;
 import com.byby.backend.domain.consultation.repository.ConsultationRepository;
 import com.byby.backend.domain.hospital.entity.Hospital;
 import com.byby.backend.domain.hospital.repository.HospitalRepository;
+import com.byby.backend.domain.matching.repository.PatientMatchRepository;
 import com.byby.backend.domain.patient.entity.Patient;
 import com.byby.backend.domain.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class ConsultationService {
     private final PatientRepository patientRepository;
     private final InterpreterRepository interpreterRepository;
     private final HospitalRepository hospitalRepository;
+    private final PatientMatchRepository patientMatchRepository;
 
     @Transactional
     public ConsultationResponse.Detail create(ConsultationRequest.Create req, UserPrincipal principal) {
@@ -41,6 +43,9 @@ public class ConsultationService {
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
         Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+        if (!patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(patient.getId(), interpreter.getId())) {
+            throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
+        }
         Hospital hospital = req.hospitalId() != null
                 ? hospitalRepository.findById(req.hospitalId())
                     .orElseThrow(() -> new BusinessException(BusinessErrorCode.HOSPITAL_NOT_FOUND))
@@ -130,7 +135,8 @@ public class ConsultationService {
         } else if (principal.isInterpreter()) {
             Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
                     .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
-            boolean isAssigned = consultationRepository.existsByPatientIdAndInterpreterId(patientId, interpreter.getId());
+            boolean isAssigned = patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(
+                    patientId, interpreter.getId());
             if (!isAssigned) throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
         } else if (!principal.isAdmin()) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
@@ -159,6 +165,14 @@ public class ConsultationService {
             Patient p = patientRepository.findByAuthUserId(principal.getAuthUserId())
                     .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
             if (!p.getId().equals(patientId)) throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_OWNER);
+        } else if (principal.isInterpreter()) {
+            Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+                    .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+            if (!patientMatchRepository.existsByPatientIdAndInterpreterIdAndActiveTrue(patientId, interpreter.getId())) {
+                throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_ASSIGNED);
+            }
+        } else if (!principal.isAdmin()) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
         return consultationRepository.findByPatientId(patientId, pageable)
                 .map(ConsultationResponse.PatientView::from);
