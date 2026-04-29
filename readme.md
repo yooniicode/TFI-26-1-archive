@@ -123,7 +123,8 @@
 ### 6.1 전체 스택 실행 (권장, Docker)
 
 ```powershell
-docker-compose --env-file .env.local up --build
+docker compose --env-file .env.local down; 
+docker compose --env-file .env.local up --build
 ```
 
 - `frontend`: `http://localhost:3000`
