@@ -17,6 +17,8 @@ import com.byby.backend.domain.admin.repository.CenterPatientMemoRepository;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.matching.repository.PatientMatchRepository;
+import com.byby.backend.domain.center.entity.Center;
+import com.byby.backend.domain.center.service.CenterService;
 import com.byby.backend.domain.patient.entity.Patient;
 import com.byby.backend.domain.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,18 +43,22 @@ public class AdminService {
     private final PatientRepository patientRepository;
     private final InterpreterRepository interpreterRepository;
     private final PatientMatchRepository patientMatchRepository;
+    private final CenterService centerService;
 
     @Transactional
     public AdminResponse.Profile getProfile(UserPrincipal principal) {
         requireAdmin(principal);
-        return AdminResponse.Profile.from(getOrCreateProfile(principal.getAuthUserId()));
+        AdminProfile profile = getOrCreateProfile(principal.getAuthUserId());
+        ensureCenterFromLegacyName(profile);
+        return AdminResponse.Profile.from(profile);
     }
 
     @Transactional
     public AdminResponse.Profile updateProfile(AdminRequest.UpdateProfile req, UserPrincipal principal) {
         requireAdmin(principal);
         AdminProfile profile = getOrCreateProfile(principal.getAuthUserId());
-        profile.update(trimToNull(req.centerName()), trimToNull(req.nickname()));
+        Center center = resolveCenter(req.centerId(), req.centerName());
+        profile.update(center, trimToNull(req.nickname()));
         return AdminResponse.Profile.from(profile);
     }
 
@@ -155,6 +161,36 @@ public class AdminService {
                         .authUserId(authUserId)
                         .nickname("관리자")
                         .build()));
+    }
+
+    @Transactional
+    public AdminProfile assignCenter(UUID authUserId, Center center) {
+        AdminProfile profile = getOrCreateProfile(authUserId);
+        profile.update(center, profile.getNickname());
+        return profile;
+    }
+
+    @Transactional
+    public Center getAdminCenter(UserPrincipal principal) {
+        requireAdmin(principal);
+        AdminProfile profile = getOrCreateProfile(principal.getAuthUserId());
+        ensureCenterFromLegacyName(profile);
+        if (profile.getCenter() == null) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "센터 정보를 먼저 설정해주세요");
+        }
+        return profile.getCenter();
+    }
+
+    private Center resolveCenter(UUID centerId, String centerName) {
+        if (centerId != null) return centerService.find(centerId);
+        if (StringUtils.hasText(centerName)) return centerService.getOrCreateByName(centerName);
+        return null;
+    }
+
+    private void ensureCenterFromLegacyName(AdminProfile profile) {
+        if (profile.getCenter() == null && StringUtils.hasText(profile.getCenterName())) {
+            profile.update(centerService.getOrCreateByName(profile.getCenterName()), profile.getNickname());
+        }
     }
 
     private void requireAdmin(UserPrincipal principal) {

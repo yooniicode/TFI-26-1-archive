@@ -45,7 +45,9 @@ public class AuthController {
             String nickname = profile.getNickname() != null ? profile.getNickname() : "관리자";
             return ResponseEntity.ok(Response.success(SuccessCode.OK,
                     new AuthResponse.Me(principal.getAuthUserId(), com.byby.backend.common.enums.UserRole.admin,
-                            nickname, null, profile.getCenterName(), profile.getNickname())));
+                            nickname, null,
+                            profile.getCenter() != null ? profile.getCenter().getId() : null,
+                            profile.getEffectiveCenterName(), profile.getNickname())));
         }
 
         // JWT role에 맞는 테이블을 먼저 확인, 없으면 반대 테이블 fallback
@@ -54,7 +56,11 @@ public class AuthController {
             if (interpreter.isPresent()) {
                 var i = interpreter.get();
                 return ResponseEntity.ok(Response.success(SuccessCode.OK,
-                        new AuthResponse.Me(principal.getAuthUserId(), com.byby.backend.common.enums.UserRole.interpreter, i.getName(), i.getId())));
+                        new AuthResponse.Me(principal.getAuthUserId(), com.byby.backend.common.enums.UserRole.interpreter,
+                                i.getName(), i.getId(),
+                                i.getCenter() != null ? i.getCenter().getId() : null,
+                                i.getCenter() != null ? i.getCenter().getName() : null,
+                                null)));
             }
             // Supabase 역할 동기화 지연 시 patient 테이블 확인
             var patient = patientRepository.findByAuthUserId(principal.getAuthUserId());
@@ -75,7 +81,11 @@ public class AuthController {
             if (interpreter.isPresent()) {
                 var i = interpreter.get();
                 return ResponseEntity.ok(Response.success(SuccessCode.OK,
-                        new AuthResponse.Me(principal.getAuthUserId(), com.byby.backend.common.enums.UserRole.interpreter, i.getName(), i.getId())));
+                        new AuthResponse.Me(principal.getAuthUserId(), com.byby.backend.common.enums.UserRole.interpreter,
+                                i.getName(), i.getId(),
+                                i.getCenter() != null ? i.getCenter().getId() : null,
+                                i.getCenter() != null ? i.getCenter().getName() : null,
+                                null)));
             }
         }
 

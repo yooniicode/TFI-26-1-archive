@@ -30,6 +30,7 @@ export default function AuthCompletePage() {
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
   const [bootstrapCode, setBootstrapCode] = useState('')
+  const [bootstrapCenterName, setBootstrapCenterName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -46,6 +47,7 @@ export default function AuthCompletePage() {
       const requestedMemberRole = getRequestedMemberRole(metadata)
       if (typeof metadata.name === 'string') setName(metadata.name)
       if (typeof metadata.phone === 'string') setPhone(metadata.phone)
+      if (typeof metadata.requested_center_name === 'string') setBootstrapCenterName(metadata.requested_center_name)
 
       try {
         const b64 = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
@@ -98,6 +100,7 @@ export default function AuthCompletePage() {
         gender: role === 'patient' ? gender : undefined,
         visaType: role === 'patient' ? visaType : undefined,
         interpreterRole: role === 'interpreter' ? 'FREELANCER' : undefined,
+        centerName: role === 'interpreter' ? bootstrapCenterName.trim() || undefined : undefined,
       })
       if (isOtpUser && newPassword) {
         await createClient().auth.updateUser({ password: newPassword })
@@ -119,7 +122,12 @@ export default function AuthCompletePage() {
         setLoading(false)
         return
       }
-      await authApi.bootstrapAdmin(bootstrapCode.trim())
+      if (!bootstrapCenterName.trim()) {
+        setError('근무 센터를 입력해주세요.')
+        setLoading(false)
+        return
+      }
+      await authApi.bootstrapAdmin(bootstrapCode.trim(), bootstrapCenterName.trim())
       await createClient().auth.refreshSession()
       router.replace('/dashboard')
       router.refresh()
@@ -144,11 +152,18 @@ export default function AuthCompletePage() {
           <h1 className="text-xl font-bold text-primary-700">승인 대기 중</h1>
           <p className="text-sm text-gray-500 mt-3">
             {requestedRoleLabel(pendingRequest)} 계정으로 가입 요청이 접수되었습니다.
+            {pendingRequest.centerName ? ` 근무 센터: ${pendingRequest.centerName}.` : ''}
             센터 직원이 회원 관리에서 권한을 승인하면 이용할 수 있습니다.
           </p>
           <div className="mt-6 space-y-2">
             {pendingRequest.role === 'admin' && (
               <>
+                <input
+                  className="input text-left"
+                  value={bootstrapCenterName}
+                  onChange={e => setBootstrapCenterName(e.target.value)}
+                  placeholder="근무 센터"
+                />
                 <input
                   className="input text-left"
                   type="password"

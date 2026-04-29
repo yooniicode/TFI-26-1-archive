@@ -5,6 +5,8 @@ import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
+import com.byby.backend.domain.admin.service.AdminService;
+import com.byby.backend.domain.center.entity.Center;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.matching.dto.MatchRequest;
@@ -29,10 +31,12 @@ public class PatientMatchService {
     private final PatientMatchRepository patientMatchRepository;
     private final PatientRepository patientRepository;
     private final InterpreterRepository interpreterRepository;
+    private final AdminService adminService;
 
     @Transactional
     public MatchResponse.Detail create(MatchRequest.Create req, UserPrincipal principal) {
         if (!principal.isAdmin()) throw new GeneralException(GeneralErrorCode.FORBIDDEN);
+        Center adminCenter = adminService.getAdminCenter(principal);
 
         // 기존 활성 매칭이 있으면 비활성화
         patientMatchRepository.findByPatientIdAndActiveTrue(req.patientId())
@@ -42,6 +46,9 @@ public class PatientMatchService {
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
         Interpreter interpreter = interpreterRepository.findById(req.interpreterId())
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+        if (interpreter.getCenter() == null || !interpreter.getCenter().getId().equals(adminCenter.getId())) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN, "같은 센터 통번역가에게만 매칭할 수 있습니다");
+        }
 
         PatientMatch match = PatientMatch.builder()
                 .patient(patient)
@@ -52,12 +59,17 @@ public class PatientMatchService {
 
     public Page<MatchResponse.Detail> getAll(Pageable pageable, UserPrincipal principal) {
         if (!principal.isAdmin()) throw new GeneralException(GeneralErrorCode.FORBIDDEN);
-        return patientMatchRepository.findByActiveTrue(pageable).map(MatchResponse.Detail::from);
+        Center adminCenter = adminService.getAdminCenter(principal);
+        return patientMatchRepository.findActiveByInterpreterCenter(adminCenter.getId(), pageable)
+                .map(MatchResponse.Detail::from);
     }
 
     public MatchResponse.Detail getByPatient(UUID patientId, UserPrincipal principal) {
         if (!principal.isAdmin()) throw new GeneralException(GeneralErrorCode.FORBIDDEN);
+        Center adminCenter = adminService.getAdminCenter(principal);
         return patientMatchRepository.findByPatientIdAndActiveTrue(patientId)
+                .filter(match -> match.getInterpreter().getCenter() != null
+                        && match.getInterpreter().getCenter().getId().equals(adminCenter.getId()))
                 .map(MatchResponse.Detail::from)
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.MATCH_NOT_FOUND));
     }
@@ -67,6 +79,11 @@ public class PatientMatchService {
         if (!principal.isAdmin()) throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         PatientMatch match = patientMatchRepository.findById(matchId)
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.MATCH_NOT_FOUND));
+        Center adminCenter = adminService.getAdminCenter(principal);
+        if (match.getInterpreter().getCenter() == null
+                || !match.getInterpreter().getCenter().getId().equals(adminCenter.getId())) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN, "다른 센터 매칭은 해제할 수 없습니다");
+        }
         match.deactivate();
     }
 

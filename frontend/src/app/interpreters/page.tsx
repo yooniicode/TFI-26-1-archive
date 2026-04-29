@@ -70,6 +70,7 @@ export default function InterpretersPage() {
                     <p className="text-xs text-gray-400 mt-0.5">
                       {INTERPRETER_ROLE_LABEL[i.role]} · {i.languages.join(', ') || '언어 미등록'}
                     </p>
+                    {i.centerName && <p className="text-xs text-gray-400">근무 센터: {i.centerName}</p>}
                     {i.phone && <p className="text-xs text-gray-400">{i.phone}</p>}
                   </div>
                   {i.active && (

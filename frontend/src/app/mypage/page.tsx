@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import AppShell from '@/components/AppShell'
-import { adminApi, patientApi, interpreterApi } from '@/lib/api'
+import { adminApi, centerApi, patientApi, interpreterApi } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { createClient } from '@/lib/supabase'
 import { useMe } from '@/hooks/useMe'
-import type { AdminWorkLog, AdminWorkLogTask, Patient, Interpreter, VisaType } from '@/lib/types'
+import type { AdminWorkLog, AdminWorkLogTask, Center, Patient, Interpreter, VisaType } from '@/lib/types'
 import { VISA_LABEL } from '@/lib/types'
 import Spinner from '@/components/ui/Spinner'
 
@@ -39,13 +39,22 @@ export default function MyPage() {
     enabled: me?.role === 'admin',
   })
 
+  const { data: centers = [], isLoading: centersLoading } = useQuery({
+    queryKey: queryKeys.centers,
+    queryFn: () => centerApi.list().then(r => r.payload ?? []),
+    enabled: me?.role === 'admin',
+  })
+
   const [phone, setPhone] = useState('')
   const [region, setRegion] = useState('')
   const [workplaceName, setWorkplaceName] = useState('')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [visaNote, setVisaNote] = useState('')
   const [intPhone, setIntPhone] = useState('')
+  const [centerId, setCenterId] = useState('')
   const [centerName, setCenterName] = useState('')
+  const [centerAddress, setCenterAddress] = useState('')
+  const [centerPhone, setCenterPhone] = useState('')
   const [nickname, setNickname] = useState('')
   const [workDate, setWorkDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [workMemo, setWorkMemo] = useState('')
@@ -67,10 +76,19 @@ export default function MyPage() {
 
   useEffect(() => {
     if (adminProfile) {
+      setCenterId(adminProfile.centerId ?? '')
       setCenterName(adminProfile.centerName ?? '')
       setNickname(adminProfile.nickname ?? '')
     }
   }, [adminProfile])
+
+  useEffect(() => {
+    const selected = centers.find(center => center.id === centerId)
+    if (!selected) return
+    setCenterName(selected.name)
+    setCenterAddress(selected.address ?? '')
+    setCenterPhone(selected.phone ?? '')
+  }, [centerId, centers])
 
   const { mutate: save, isPending: saving, isSuccess, error: saveError } = useMutation<unknown, Error>({
     mutationFn: () => {
@@ -88,10 +106,34 @@ export default function MyPage() {
 
   const { mutate: saveAdminProfile, isPending: savingAdminProfile, isSuccess: adminSaved, error: adminSaveError } =
     useMutation<unknown, Error>({
-      mutationFn: () => adminApi.updateProfile({ centerName, nickname }),
+      mutationFn: () => adminApi.updateProfile({
+        centerId: centerId || undefined,
+        centerName: centerId ? undefined : centerName,
+        nickname,
+      }),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.adminProfile })
         queryClient.invalidateQueries({ queryKey: queryKeys.me })
+      },
+    })
+
+  const { mutate: saveCenterInfo, isPending: savingCenterInfo, error: centerSaveError } =
+    useMutation<Center, Error>({
+      mutationFn: () => {
+        if (!centerName.trim()) return Promise.reject(new Error('센터 이름을 입력해주세요.'))
+        const body = {
+          name: centerName.trim(),
+          address: centerAddress.trim() || undefined,
+          phone: centerPhone.trim() || undefined,
+          active: true,
+        }
+        return centerId
+          ? centerApi.update(centerId, body).then(r => r.payload as Center)
+          : centerApi.create(body).then(r => r.payload as Center)
+      },
+      onSuccess: (center) => {
+        setCenterId(center.id)
+        queryClient.invalidateQueries({ queryKey: queryKeys.centers })
       },
     })
 
@@ -133,7 +175,7 @@ export default function MyPage() {
     window.location.href = '/login'
   }
 
-  const loading = meLoading || patientLoading || interpreterLoading || adminProfileLoading || workLogsLoading
+  const loading = meLoading || patientLoading || interpreterLoading || adminProfileLoading || workLogsLoading || centersLoading
   if (loading) return <AppShell><Spinner /></AppShell>
   if (!meLoading && me && me.role !== 'admin' && !me.entityId) {
     window.location.replace('/auth/complete')
@@ -155,16 +197,36 @@ export default function MyPage() {
             <form onSubmit={e => { e.preventDefault(); saveAdminProfile() }} className="space-y-4">
               <div>
                 <label className="label">센터 이름(근무지)</label>
+                <select className="input mb-2" value={centerId} onChange={e => setCenterId(e.target.value)}>
+                  <option value="">새 센터 직접 입력</option>
+                  {centers.map(center => (
+                    <option key={center.id} value={center.id}>{center.name}</option>
+                  ))}
+                </select>
                 <input className="input" value={centerName} onChange={e => setCenterName(e.target.value)} placeholder="예: 동행센터" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">센터 연락처</label>
+                  <input className="input" value={centerPhone} onChange={e => setCenterPhone(e.target.value)} placeholder="센터 전화번호" />
+                </div>
+                <div>
+                  <label className="label">센터 주소</label>
+                  <input className="input" value={centerAddress} onChange={e => setCenterAddress(e.target.value)} placeholder="센터 주소" />
+                </div>
               </div>
               <div>
                 <label className="label">닉네임</label>
                 <input className="input" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="화면에 표시할 이름" />
               </div>
               {adminSaveError && <p className="text-red-500 text-xs">{adminSaveError.message}</p>}
+              {centerSaveError && <p className="text-red-500 text-xs">{centerSaveError.message}</p>}
               {adminSaved && <p className="text-green-600 text-xs">관리자 정보가 저장되었습니다.</p>}
+              <button type="button" className="btn-secondary w-full" disabled={savingCenterInfo} onClick={() => saveCenterInfo()}>
+                {savingCenterInfo ? '저장 중...' : centerId ? '센터 정보 수정' : '센터 생성'}
+              </button>
               <button type="submit" className="btn-primary w-full" disabled={savingAdminProfile}>
-                {savingAdminProfile ? '저장 중...' : '관리자 정보 저장'}
+                {savingAdminProfile ? '저장 중...' : '내 근무 센터/닉네임 저장'}
               </button>
             </form>
 

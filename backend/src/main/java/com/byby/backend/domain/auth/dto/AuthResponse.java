@@ -12,11 +12,12 @@ public class AuthResponse {
             UserRole role,
             String name,
             UUID entityId,
+            UUID centerId,
             String centerName,
             String nickname
     ) {
         public Me(UUID authUserId, UserRole role, String name, UUID entityId) {
-            this(authUserId, role, name, entityId, null, null);
+            this(authUserId, role, name, entityId, null, null, null);
         }
     }
 
@@ -28,6 +29,8 @@ public class AuthResponse {
             UserRole role,
             InterpreterRole interpreterRole,
             UUID interpreterId,
+            UUID centerId,
+            String centerName,
             boolean profileRegistered,
             boolean approved
     ) {}

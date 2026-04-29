@@ -15,12 +15,14 @@ public class AdminResponse {
     public record Profile(
             UUID id,
             UUID authUserId,
+            UUID centerId,
             String centerName,
             String nickname
     ) {
         public static Profile from(AdminProfile profile) {
             return new Profile(profile.getId(), profile.getAuthUserId(),
-                    profile.getCenterName(), profile.getNickname());
+                    profile.getCenter() != null ? profile.getCenter().getId() : null,
+                    profile.getEffectiveCenterName(), profile.getNickname());
         }
     }
 

@@ -5,6 +5,8 @@ import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
+import com.byby.backend.domain.admin.service.AdminService;
+import com.byby.backend.domain.center.entity.Center;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.consultation.entity.Consultation;
@@ -34,6 +36,7 @@ public class HandoverService {
     private final InterpreterRepository interpreterRepository;
     private final ConsultationRepository consultationRepository;
     private final PatientMatchRepository patientMatchRepository;
+    private final AdminService adminService;
 
     @Transactional
     public HandoverResponse.Detail create(HandoverRequest.Create req, UserPrincipal principal) {
@@ -87,6 +90,10 @@ public class HandoverService {
 
         Interpreter toInterpreter = interpreterRepository.findById(req.toInterpreterId())
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
+        Center adminCenter = adminService.getAdminCenter(principal);
+        if (toInterpreter.getCenter() == null || !toInterpreter.getCenter().getId().equals(adminCenter.getId())) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN, "같은 센터 통번역가에게만 배정할 수 있습니다");
+        }
         handover.assign(toInterpreter);
 
         // PatientMatch 업데이트: 기존 매칭을 새 통번역가로 변경

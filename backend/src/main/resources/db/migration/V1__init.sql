@@ -22,6 +22,19 @@ CREATE TABLE patient (
 CREATE INDEX idx_patient_auth_user_id ON patient(auth_user_id);
 CREATE INDEX idx_patient_nationality  ON patient(nationality);
 
+-- 센터
+CREATE TABLE center (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       VARCHAR(200) NOT NULL UNIQUE,
+    address    VARCHAR(300),
+    phone      VARCHAR(20),
+    active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_center_name ON center(name);
+
 -- 통번역가 (Interpreter)
 CREATE TABLE interpreter (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -29,24 +42,28 @@ CREATE TABLE interpreter (
     name         VARCHAR(100) NOT NULL,
     phone        VARCHAR(20),
     role         VARCHAR(50)  NOT NULL,
+    center_id    UUID                  REFERENCES center(id),
     active       BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_interpreter_auth_user_id ON interpreter(auth_user_id);
+CREATE INDEX idx_interpreter_center_id ON interpreter(center_id);
 
 -- 센터 관리자 프로필
 CREATE TABLE admin_profile (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_user_id UUID         NOT NULL UNIQUE,
     center_name  VARCHAR(200),
+    center_id    UUID                  REFERENCES center(id),
     nickname     VARCHAR(100),
     created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_admin_profile_auth_user_id ON admin_profile(auth_user_id);
+CREATE INDEX idx_admin_profile_center_id ON admin_profile(center_id);
 
 -- 센터장 근무일지
 CREATE TABLE admin_work_log (
@@ -193,7 +210,7 @@ DO $$
 DECLARE
     t TEXT;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['patient','interpreter','admin_profile','admin_work_log',
+    FOREACH t IN ARRAY ARRAY['patient','center','interpreter','admin_profile','admin_work_log',
                               'hospital','consultation','handover','center_patient_memo',
                               'patient_match','medical_script']
     LOOP

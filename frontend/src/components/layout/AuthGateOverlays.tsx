@@ -25,10 +25,13 @@ export default function AuthGateOverlays({ me, pathname }: AuthGateOverlaysProps
   const [bootstrapLoading, setBootstrapLoading] = useState(false)
   const [bootstrapError, setBootstrapError] = useState('')
   const [bootstrapCode, setBootstrapCode] = useState('')
+  const [bootstrapCenterName, setBootstrapCenterName] = useState('')
 
   useEffect(() => {
     createClient().auth.getSession().then(({ data: { session } }) => {
-      setPendingRequest(getRequestedMemberRole(session?.user.user_metadata ?? null))
+      const request = getRequestedMemberRole(session?.user.user_metadata ?? null)
+      setPendingRequest(request)
+      if (request?.centerName) setBootstrapCenterName(request.centerName)
     })
   }, [])
 
@@ -47,7 +50,12 @@ export default function AuthGateOverlays({ me, pathname }: AuthGateOverlaysProps
         setBootstrapLoading(false)
         return
       }
-      await authApi.bootstrapAdmin(bootstrapCode.trim())
+      if (!bootstrapCenterName.trim()) {
+        setBootstrapError('근무 센터를 입력해주세요.')
+        setBootstrapLoading(false)
+        return
+      }
+      await authApi.bootstrapAdmin(bootstrapCode.trim(), bootstrapCenterName.trim())
       await createClient().auth.refreshSession()
       router.replace('/dashboard')
       router.refresh()
@@ -96,9 +104,16 @@ export default function AuthGateOverlays({ me, pathname }: AuthGateOverlaysProps
             </h2>
             <p className="text-sm text-gray-500 mb-5">
               센터 직원이 회원 관리에서 권한을 승인하면 이 계정으로 이용할 수 있습니다.
+              {pendingRequest?.centerName ? ` 근무 센터: ${pendingRequest.centerName}.` : ''}
             </p>
             {pendingRequest?.role === 'admin' && (
               <>
+                <input
+                  className="input mb-2"
+                  value={bootstrapCenterName}
+                  onChange={e => setBootstrapCenterName(e.target.value)}
+                  placeholder="근무 센터"
+                />
                 <input
                   className="input mb-2"
                   type="password"

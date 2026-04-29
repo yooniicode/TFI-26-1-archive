@@ -41,9 +41,19 @@ export const interpreterSchema = z.object({
   name:      z.string(),
   phone:     z.string().optional(),
   role:      interpreterRoleSchema,
+  centerId:  z.string().uuid().nullable().optional(),
+  centerName: z.string().nullable().optional(),
   languages: z.array(z.string()),
   active:    z.boolean(),
   createdAt: z.string(),
+})
+
+export const centerSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  address: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  active: z.boolean(),
 })
 
 export const hospitalSchema = z.object({
@@ -149,6 +159,7 @@ export const authMeSchema = z.object({
   role:       userRoleSchema,
   name:       z.string().nullable().optional(),
   entityId:   z.string().uuid().nullable().optional(),
+  centerId:   z.string().uuid().nullable().optional(),
   centerName: z.string().nullable().optional(),
   nickname:   z.string().nullable().optional(),
 })
@@ -161,6 +172,8 @@ export const memberSchema = z.object({
   role: z.enum(['admin', 'interpreter']),
   interpreterRole: interpreterRoleSchema.nullable().optional(),
   interpreterId: z.string().uuid().nullable().optional(),
+  centerId: z.string().uuid().nullable().optional(),
+  centerName: z.string().nullable().optional(),
   profileRegistered: z.boolean(),
   approved: z.boolean(),
 })
@@ -168,6 +181,7 @@ export const memberSchema = z.object({
 export const adminProfileSchema = z.object({
   id: z.string().uuid(),
   authUserId: z.string().uuid(),
+  centerId: z.string().uuid().nullable().optional(),
   centerName: z.string().nullable().optional(),
   nickname: z.string().nullable().optional(),
 })
@@ -201,6 +215,8 @@ export const centerPatientMemoSchema = z.object({
 export const schemas = {
   patient:       patientSchema,
   patients:      z.array(patientSchema),
+  center:        centerSchema,
+  centers:       z.array(centerSchema),
   interpreter:   interpreterSchema,
   interpreters:  z.array(interpreterSchema),
   hospital:      hospitalSchema,

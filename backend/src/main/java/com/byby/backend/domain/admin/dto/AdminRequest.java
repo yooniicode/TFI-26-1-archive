@@ -6,10 +6,12 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public class AdminRequest {
 
     public record UpdateProfile(
+            UUID centerId,
             String centerName,
             String nickname
     ) {}

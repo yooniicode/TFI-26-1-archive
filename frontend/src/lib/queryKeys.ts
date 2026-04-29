@@ -1,6 +1,7 @@
 export const queryKeys = {
   me: ['me'] as const,
   members: ['members'] as const,
+  centers: ['centers'] as const,
   adminProfile: ['admin', 'profile'] as const,
   adminWorkLogs: (page: number, from = '', to = '') => ['admin', 'work-logs', page, from, to] as const,
 

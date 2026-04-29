@@ -15,5 +15,6 @@ export const APP_NAV_ITEMS: NavItem[] = [
   { href: '/matching',      label: '매칭',     icon: '◎', roles: ['admin'] },
   { href: '/interpreters',  label: '통번역가', icon: '▣', roles: ['admin'] },
   { href: '/members',       label: '회원',     icon: '○', roles: ['admin'] },
+  { href: '/centers',       label: '센터',     icon: '⌘', roles: ['admin'] },
   { href: '/my-records',    label: '내 기록',  icon: '□', roles: ['patient'] },
 ]

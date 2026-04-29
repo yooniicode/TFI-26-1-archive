@@ -6,8 +6,11 @@ import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
 import com.byby.backend.domain.admin.entity.AdminProfile;
+import com.byby.backend.domain.admin.repository.AdminProfileRepository;
 import com.byby.backend.domain.admin.service.AdminService;
 import com.byby.backend.domain.auth.dto.AuthResponse;
+import com.byby.backend.domain.center.entity.Center;
+import com.byby.backend.domain.center.service.CenterService;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.auth.dto.AuthRequest;
@@ -45,7 +48,9 @@ public class AuthService {
 
     private final PatientRepository patientRepository;
     private final InterpreterRepository interpreterRepository;
+    private final AdminProfileRepository adminProfileRepository;
     private final AdminService adminService;
+    private final CenterService centerService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
@@ -134,10 +139,13 @@ public class AuthService {
         }
 
         updateSupabaseRoleOrThrow(principal.getAuthUserId(), UserRole.admin);
-        AdminProfile profile = adminService.getOrCreateProfile(principal.getAuthUserId());
+        String centerName = trimToNull(req.centerName())
+                != null ? trimToNull(req.centerName()) : requestedCenterName(principal.getAuthUserId());
+        Center center = centerService.getOrCreateByName(centerName);
+        AdminProfile profile = adminService.assignCenter(principal.getAuthUserId(), center);
         String name = StringUtils.hasText(profile.getNickname()) ? profile.getNickname() : "관리자";
         return new AuthResponse.Me(principal.getAuthUserId(), UserRole.admin, name, null,
-                profile.getCenterName(), profile.getNickname());
+                center.getId(), center.getName(), profile.getNickname());
     }
 
     @Transactional
@@ -166,12 +174,14 @@ public class AuthService {
     @Transactional
     public List<AuthResponse.Member> getNonPatientMembers(UserPrincipal principal) {
         requireAdmin(principal);
+        Center adminCenter = adminService.getAdminCenter(principal);
 
         Map<UUID, Interpreter> interpretersByAuthId = interpreterRepository.findAll().stream()
                 .collect(Collectors.toMap(Interpreter::getAuthUserId, Function.identity(), (a, b) -> a));
 
         if (!StringUtils.hasText(supabaseUrl) || !StringUtils.hasText(supabaseServiceKey)) {
             return interpretersByAuthId.values().stream()
+                    .filter(i -> sameCenter(i.getCenter(), adminCenter))
                     .map(i -> toMember(null, null, i.getAuthUserId(), UserRole.interpreter, i))
                     .toList();
         }
@@ -195,12 +205,14 @@ public class AuthService {
                 }
 
                 if (role == UserRole.patient) continue;
+                if (!belongsToCenter(user, role, interpreter, adminCenter)) continue;
                 AuthResponse.Member member = toMember(user, email, authUserId, role, interpreter);
                 members.add(member);
                 byId.put(authUserId, member);
             }
             interpretersByAuthId.values().stream()
                     .filter(i -> !byId.containsKey(i.getAuthUserId()))
+                    .filter(i -> sameCenter(i.getCenter(), adminCenter))
                     .map(i -> toMember(null, null, i.getAuthUserId(), UserRole.interpreter, i))
                     .forEach(members::add);
             return members;
@@ -214,6 +226,7 @@ public class AuthService {
     @Transactional
     public AuthResponse.Member updateMemberRole(UUID authUserId, AuthRequest.UpdateMemberRole req, UserPrincipal principal) {
         requireAdmin(principal);
+        Center adminCenter = adminService.getAdminCenter(principal);
         if (req.role() == null || req.role() == UserRole.patient) {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "Only non-patient roles can be managed here");
         }
@@ -221,16 +234,28 @@ public class AuthService {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "You cannot remove your own center-staff role");
         }
 
+        findSupabaseUser(authUserId).ifPresent(user -> {
+            Interpreter currentInterpreter = interpreterRepository.findByAuthUserId(authUserId).orElse(null);
+            UserRole currentRole = resolveMemberRole(user, currentInterpreter);
+            if (currentRole != UserRole.patient && !belongsToCenter(user, currentRole, currentInterpreter, adminCenter)) {
+                throw new GeneralException(GeneralErrorCode.FORBIDDEN, "다른 센터 회원은 관리할 수 없습니다");
+            }
+        });
+
         updateSupabaseRoleOrThrow(authUserId, req.role());
 
         Optional<Interpreter> interpreter = interpreterRepository.findByAuthUserId(authUserId);
         Interpreter saved = interpreter.orElse(null);
         if (req.role() == UserRole.interpreter) {
             InterpreterRole interpreterRole = req.interpreterRole() != null ? req.interpreterRole() : InterpreterRole.FREELANCER;
-            saved = upsertInterpreterProfile(authUserId, trimToNull(req.name()), trimToNull(req.phone()), interpreterRole, saved);
+            saved = upsertInterpreterProfile(authUserId, trimToNull(req.name()), trimToNull(req.phone()), interpreterRole, adminCenter, saved);
         } else if (saved != null) {
             saved.updateAdminInfo(trimToNull(req.name()), trimToNull(req.phone()), InterpreterRole.STAFF);
+            saved.updateCenter(adminCenter);
             saved.deactivate();
+            adminService.assignCenter(authUserId, adminCenter);
+        } else {
+            adminService.assignCenter(authUserId, adminCenter);
         }
 
         return toMember(null, null, authUserId, req.role(), saved);
@@ -279,23 +304,30 @@ public class AuthService {
         if (!StringUtils.hasText(name)) name = authUserId.toString();
         String phone = text(metadata, "phone");
         InterpreterRole role = resolveRequestedInterpreterRole(metadata).orElse(InterpreterRole.ACTIVIST);
-        return upsertInterpreterProfile(authUserId, name, phone, role, interpreter);
+        Center center = resolveRequestedCenter(metadata);
+        if (center == null && interpreter != null) center = interpreter.getCenter();
+        return upsertInterpreterProfile(authUserId, name, phone, role, center, interpreter);
     }
 
     private Interpreter upsertInterpreterProfile(UUID authUserId, String name, String phone,
-                                                 InterpreterRole role, Interpreter existing) {
+                                                 InterpreterRole role, Center center, Interpreter existing) {
         if (existing == null) {
             if (!StringUtils.hasText(name)) {
                 throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "name is required when creating an interpreter profile");
+            }
+            if (center == null) {
+                throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "centerName is required when creating an interpreter profile");
             }
             return interpreterRepository.save(Interpreter.builder()
                     .authUserId(authUserId)
                     .name(name.trim())
                     .phone(trimToNull(phone))
                     .role(role)
+                    .center(center)
                     .build());
         }
         existing.updateAdminInfo(trimToNull(name), trimToNull(phone), role);
+        if (center != null) existing.updateCenter(center);
         existing.activate();
         return existing;
     }
@@ -312,6 +344,7 @@ public class AuthService {
                 : role == UserRole.interpreter
                     ? resolveRequestedInterpreterRole(metadata).orElse(null)
                     : null;
+        Center center = memberCenter(user, role, interpreter);
         boolean approved = approvedRole.map(r -> r == role).orElse(user == null || interpreter != null);
         boolean profileRegistered = role == UserRole.admin ? approved : interpreter != null;
         return new AuthResponse.Member(
@@ -322,9 +355,56 @@ public class AuthService {
                 role,
                 interpreterRole,
                 interpreter != null ? interpreter.getId() : null,
+                center != null ? center.getId() : null,
+                center != null ? center.getName() : requestedCenterName(metadata),
                 profileRegistered,
                 approved
         );
+    }
+
+    private boolean belongsToCenter(JsonNode user, UserRole role, Interpreter interpreter, Center adminCenter) {
+        Center center = memberCenter(user, role, interpreter);
+        if (center != null) return sameCenter(center, adminCenter);
+        String requestedName = requestedCenterName(user.path("user_metadata"));
+        return StringUtils.hasText(requestedName)
+                && requestedName.equalsIgnoreCase(adminCenter.getName());
+    }
+
+    private Center memberCenter(JsonNode user, UserRole role, Interpreter interpreter) {
+        if (interpreter != null && interpreter.getCenter() != null) return interpreter.getCenter();
+        UUID authUserId = user != null && user.hasNonNull("id") ? UUID.fromString(user.path("id").asText()) : null;
+        if (role == UserRole.admin && authUserId != null) {
+            AdminProfile profile = adminProfileRepository.findByAuthUserId(authUserId).orElse(null);
+            if (profile != null) {
+                if (profile.getCenter() != null) return profile.getCenter();
+                if (StringUtils.hasText(profile.getCenterName())) {
+                    return centerService.getOrCreateByName(profile.getCenterName());
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean sameCenter(Center left, Center right) {
+        return left != null && right != null && left.getId().equals(right.getId());
+    }
+
+    private Center resolveRequestedCenter(JsonNode metadata) {
+        String centerName = requestedCenterName(metadata);
+        return StringUtils.hasText(centerName) ? centerService.getOrCreateByName(centerName) : null;
+    }
+
+    private String requestedCenterName(UUID authUserId) {
+        return findSupabaseUser(authUserId)
+                .map(user -> requestedCenterName(user.path("user_metadata")))
+                .filter(StringUtils::hasText)
+                .orElseThrow(() -> new GeneralException(GeneralErrorCode.BAD_REQUEST, "근무 센터를 입력해주세요"));
+    }
+
+    private String requestedCenterName(JsonNode metadata) {
+        String value = text(metadata, "requested_center_name");
+        if (!StringUtils.hasText(value)) value = text(metadata, "center_name");
+        return trimToNull(value);
     }
 
     private UserRole resolveMemberRole(JsonNode user, Interpreter interpreter) {
@@ -474,12 +554,18 @@ public class AuthService {
         if (req.interpreterRole() == null) {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "interpreterRole is required");
         }
+        Center center = req.centerId() != null
+                ? centerService.find(req.centerId())
+                : StringUtils.hasText(req.centerName())
+                    ? centerService.getOrCreateByName(req.centerName())
+                    : centerService.getOrCreateByName(requestedCenterName(principal.getAuthUserId()));
 
         Interpreter interpreter = Interpreter.builder()
                 .authUserId(principal.getAuthUserId())
                 .name(req.name())
                 .phone(req.phone())
                 .role(req.interpreterRole())
+                .center(center)
                 .build();
         interpreterRepository.save(interpreter);
     }

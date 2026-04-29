@@ -13,11 +13,16 @@ public class InterpreterResponse {
             UUID id,
             String name,
             InterpreterRole role,
+            UUID centerId,
+            String centerName,
             List<String> languages,
             boolean active
     ) {
         public static Summary from(Interpreter i) {
-            return new Summary(i.getId(), i.getName(), i.getRole(), List.copyOf(i.getLanguages()), i.isActive());
+            return new Summary(i.getId(), i.getName(), i.getRole(),
+                    i.getCenter() != null ? i.getCenter().getId() : null,
+                    i.getCenter() != null ? i.getCenter().getName() : null,
+                    List.copyOf(i.getLanguages()), i.isActive());
         }
     }
 
@@ -26,12 +31,16 @@ public class InterpreterResponse {
             String name,
             String phone,
             InterpreterRole role,
+            UUID centerId,
+            String centerName,
             List<String> languages,
             boolean active,
             LocalDateTime createdAt
     ) {
         public static Detail from(Interpreter i) {
             return new Detail(i.getId(), i.getName(), i.getPhone(), i.getRole(),
+                    i.getCenter() != null ? i.getCenter().getId() : null,
+                    i.getCenter() != null ? i.getCenter().getName() : null,
                     List.copyOf(i.getLanguages()), i.isActive(), i.getCreatedAt());
         }
     }

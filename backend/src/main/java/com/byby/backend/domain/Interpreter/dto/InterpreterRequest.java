@@ -14,6 +14,8 @@ public class InterpreterRequest {
             @NotBlank String name,
             String phone,
             @NotNull InterpreterRole role,
+            UUID centerId,
+            String centerName,
             List<String> languages
     ) {}
 

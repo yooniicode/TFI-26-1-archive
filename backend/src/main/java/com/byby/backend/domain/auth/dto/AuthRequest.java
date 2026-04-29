@@ -6,6 +6,7 @@ import com.byby.backend.common.enums.Nationality;
 import com.byby.backend.common.enums.UserRole;
 import com.byby.backend.common.enums.VisaType;
 import jakarta.validation.constraints.NotBlank;
+import java.util.UUID;
 
 public class AuthRequest {
 
@@ -19,17 +20,22 @@ public class AuthRequest {
             String phone,
             String region,
             String workplaceName,
-            InterpreterRole interpreterRole
+            InterpreterRole interpreterRole,
+            UUID centerId,
+            String centerName
     ) {}
 
     public record UpdateMemberRole(
             UserRole role,
             InterpreterRole interpreterRole,
             String name,
-            String phone
+            String phone,
+            UUID centerId,
+            String centerName
     ) {}
 
     public record BootstrapAdmin(
-            @NotBlank String secretCode
+            @NotBlank String secretCode,
+            String centerName
     ) {}
 }

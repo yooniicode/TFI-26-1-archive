@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [gender, setGender] = useState<Gender>('OTHER')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [phone, setPhone] = useState('')
+  const [centerName, setCenterName] = useState('')
   const [isSignupMode, setIsSignupMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -36,6 +37,10 @@ export default function LoginPage() {
 
   async function handleMagicLink() {
     if (!email) { setError('이메일을 입력해주세요.'); return }
+    if (accountType !== 'patient' && !centerName.trim()) {
+      setError('근무 센터를 입력해주세요.')
+      return
+    }
     setLoading(true); setError('')
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
@@ -78,6 +83,7 @@ export default function LoginPage() {
           name: name.trim(),
           phone,
           requested_role: requestedRole,
+          ...(accountType !== 'patient' ? { requested_center_name: centerName.trim() } : {}),
           ...(requestedInterpreterRole ? { requested_interpreter_role: requestedInterpreterRole } : {}),
           ...(accountType === 'patient' ? {
             nationality,
@@ -205,6 +211,22 @@ export default function LoginPage() {
                 placeholder="010-0000-0000"
               />
             </div>
+            {accountType !== 'patient' && (
+              <div>
+                <label className="label">근무 센터</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={centerName}
+                  onChange={e => setCenterName(e.target.value)}
+                  placeholder="예: 동행센터"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  같은 센터의 관리자만 가입 요청을 확인하고 승인할 수 있습니다.
+                </p>
+              </div>
+            )}
             {accountType === 'patient' && (
               <>
                 <div>

@@ -2,6 +2,7 @@ package com.byby.backend.domain.interpreter.entity;
 
 import com.byby.backend.common.entity.BaseEntity;
 import com.byby.backend.common.enums.InterpreterRole;
+import com.byby.backend.domain.center.entity.Center;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +33,10 @@ public class Interpreter extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private InterpreterRole role;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "center_id")
+    private Center center;
+
     @ElementCollection
     @CollectionTable(name = "interpreter_language", joinColumns = @JoinColumn(name = "interpreter_id"))
     @Column(name = "language")
@@ -42,11 +47,12 @@ public class Interpreter extends BaseEntity {
 
     @Builder
     public Interpreter(UUID authUserId, String name, String phone,
-                       InterpreterRole role, List<String> languages) {
+                       InterpreterRole role, Center center, List<String> languages) {
         this.authUserId = authUserId;
         this.name = name;
         this.phone = phone;
         this.role = role;
+        this.center = center;
         this.languages = languages != null ? languages : new ArrayList<>();
     }
 
@@ -59,6 +65,10 @@ public class Interpreter extends BaseEntity {
         if (name != null) this.name = name;
         if (phone != null) this.phone = phone;
         if (role != null) this.role = role;
+    }
+
+    public void updateCenter(Center center) {
+        this.center = center;
     }
 
     public void deactivate() {

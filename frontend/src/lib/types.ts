@@ -72,9 +72,19 @@ export interface Interpreter {
   name: string
   phone?: string
   role: InterpreterRole
+  centerId?: string | null
+  centerName?: string | null
   languages: string[]
   active: boolean
   createdAt: string
+}
+
+export interface Center {
+  id: string
+  name: string
+  address?: string | null
+  phone?: string | null
+  active: boolean
 }
 
 export interface Hospital { id: string; name: string; address?: string; phone?: string }
@@ -175,6 +185,7 @@ export interface AuthMe {
   role: UserRole
   name?: string | null
   entityId?: string | null
+  centerId?: string | null
   centerName?: string | null
   nickname?: string | null
 }
@@ -187,6 +198,8 @@ export interface Member {
   role: Extract<UserRole, 'admin' | 'interpreter'>
   interpreterRole?: InterpreterRole | null
   interpreterId?: string | null
+  centerId?: string | null
+  centerName?: string | null
   profileRegistered: boolean
   approved: boolean
 }
@@ -196,6 +209,8 @@ export interface UpdateMemberRoleRequest {
   interpreterRole?: InterpreterRole
   name?: string
   phone?: string
+  centerId?: string
+  centerName?: string
 }
 
 export interface RegisterProfileRequest {
@@ -209,11 +224,14 @@ export interface RegisterProfileRequest {
   region?: string
   workplaceName?: string
   interpreterRole?: InterpreterRole
+  centerId?: string
+  centerName?: string
 }
 
 export interface AdminProfile {
   id: string
   authUserId: string
+  centerId?: string | null
   centerName?: string | null
   nickname?: string | null
 }

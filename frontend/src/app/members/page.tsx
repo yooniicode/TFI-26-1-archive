@@ -91,6 +91,7 @@ export default function MembersPage() {
                       <p className="text-sm font-semibold truncate">{member.name || member.email || member.authUserId}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{member.email ?? member.authUserId}</p>
                       {member.phone && <p className="text-xs text-gray-400">{member.phone}</p>}
+                      {member.centerName && <p className="text-xs text-gray-400">근무 센터: {member.centerName}</p>}
                     </div>
                     <Badge variant={member.approved ? 'green' : 'yellow'}>
                       {member.approved ? '승인됨' : '승인 대기'}
