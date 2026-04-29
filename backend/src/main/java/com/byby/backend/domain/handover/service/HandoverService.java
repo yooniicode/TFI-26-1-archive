@@ -13,7 +13,6 @@ import com.byby.backend.domain.handover.dto.HandoverRequest;
 import com.byby.backend.domain.handover.dto.HandoverResponse;
 import com.byby.backend.domain.handover.entity.Handover;
 import com.byby.backend.domain.handover.repository.HandoverRepository;
-import com.byby.backend.domain.matching.entity.PatientMatch;
 import com.byby.backend.domain.matching.repository.PatientMatchRepository;
 import com.byby.backend.domain.patient.entity.Patient;
 import com.byby.backend.domain.patient.repository.PatientRepository;

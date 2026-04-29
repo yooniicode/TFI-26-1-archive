@@ -23,7 +23,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         String token = extractToken(request);
-        if (StringUtils.hasText(token) && jwtUtil.isValid(token)) {
+        if (StringUtils.hasText(token)) {
             try {
                 UserPrincipal principal = jwtUtil.toPrincipal(token);
                 UsernamePasswordAuthenticationToken auth =

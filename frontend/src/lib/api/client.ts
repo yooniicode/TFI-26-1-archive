@@ -1,6 +1,6 @@
-import axios from 'axios'
+import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { z } from 'zod'
-import { getAccessToken } from '../supabase'
+import { getAccessToken, refreshAccessToken } from '../supabase'
 import type { ApiResponse } from '../types'
 
 export class ApiError extends Error {
@@ -18,6 +18,10 @@ export class ApiError extends Error {
 
 const instance = axios.create({ baseURL: '/api/v1' })
 
+type AuthRetryConfig = InternalAxiosRequestConfig & {
+  _authRetry?: boolean
+}
+
 instance.interceptors.request.use(async config => {
   const token = await getAccessToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -26,9 +30,20 @@ instance.interceptors.request.use(async config => {
 
 instance.interceptors.response.use(
   res => res,
-  err => {
+  async err => {
     if (axios.isAxiosError(err)) {
       const status = err.response?.status ?? 0
+      const config = err.config as AuthRetryConfig | undefined
+
+      if (status === 401 && config && !config._authRetry) {
+        config._authRetry = true
+        const token = await refreshAccessToken()
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+          return instance.request(config)
+        }
+      }
+
       const message = err.response?.data?.message ?? err.message
       throw new ApiError(message, status)
     }

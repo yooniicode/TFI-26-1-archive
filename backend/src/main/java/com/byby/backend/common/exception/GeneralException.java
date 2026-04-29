@@ -1,6 +1,5 @@
 package com.byby.backend.common.exception;
 
-import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import lombok.Getter;
 
