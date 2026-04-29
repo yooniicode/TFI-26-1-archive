@@ -78,6 +78,8 @@ logging:
   level:
     com.byby: DEBUG
     org.hibernate.SQL: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
 
 ---
 spring:
