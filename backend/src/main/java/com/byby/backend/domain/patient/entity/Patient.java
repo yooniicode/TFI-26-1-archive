@@ -75,4 +75,8 @@ public class Patient extends BaseEntity {
         if (visaNote != null) this.visaNote = visaNote;
         if (visaType != null) this.visaType = visaType;
     }
+
+    public void linkAuthUser(UUID authUserId) {
+        this.authUserId = authUserId;
+    }
 }

@@ -27,28 +27,68 @@ export default function AuthCompletePage() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.access_token) {
-        try {
-          const b64 = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-          const payload = JSON.parse(atob(b64))
-          setIsOtpUser(payload.amr?.some((a: { method: string }) => a.method === 'otp') ?? false)
-        } catch { /* ignore decode errors */ }
+      if (!session?.access_token) {
+        router.replace('/login')
+        setChecking(false)
+        return
       }
-    })
-    authApi.me()
-      .then((res) => {
-        if (res.payload?.entityId) {
-          router.replace('/dashboard')
-        } else {
-          setNeedsProfile(true)
-        }
+
+      const metadata = session.user.user_metadata ?? {}
+      if (typeof metadata.name === 'string') setName(metadata.name)
+      if (typeof metadata.phone === 'string') setPhone(metadata.phone)
+      if (metadata.role === 'interpreter' || metadata.app_role === 'interpreter') {
+        setRole('interpreter')
+      }
+      if (metadata.nationality === 'VIETNAM' || metadata.nationality === 'CHINA' ||
+          metadata.nationality === 'CAMBODIA' || metadata.nationality === 'MYANMAR' ||
+          metadata.nationality === 'PHILIPPINES' || metadata.nationality === 'INDONESIA' ||
+          metadata.nationality === 'THAILAND' || metadata.nationality === 'NEPAL' ||
+          metadata.nationality === 'MONGOLIA' || metadata.nationality === 'UZBEKISTAN' ||
+          metadata.nationality === 'SRI_LANKA' || metadata.nationality === 'BANGLADESH' ||
+          metadata.nationality === 'PAKISTAN' || metadata.nationality === 'OTHER') {
+        setNationality(metadata.nationality)
+      }
+      if (metadata.gender === 'MALE' || metadata.gender === 'FEMALE' || metadata.gender === 'OTHER') {
+        setGender(metadata.gender)
+      }
+      if (metadata.visa_type === 'E9' || metadata.visa_type === 'E6' ||
+          metadata.visa_type === 'F1' || metadata.visa_type === 'F2' ||
+          metadata.visa_type === 'F4' || metadata.visa_type === 'F5' ||
+          metadata.visa_type === 'F6' || metadata.visa_type === 'H2' ||
+          metadata.visa_type === 'D2' || metadata.visa_type === 'U' ||
+          metadata.visa_type === 'OTHER') {
+        setVisaType(metadata.visa_type)
+      }
+      if (metadata.interpreter_role === 'ACTIVIST' || metadata.interpreter_role === 'FREELANCER' ||
+          metadata.interpreter_role === 'STAFF') {
+        setInterpreterRole(metadata.interpreter_role)
+      }
+
+      try {
+        const b64 = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+        const payload = JSON.parse(atob(b64))
+        setIsOtpUser(payload.amr?.some((a: { method: string }) => a.method === 'otp') ?? false)
+      } catch { /* ignore decode errors */ }
+
+      authApi.me()
+        .then((res) => {
+          if (res.payload?.entityId) {
+            router.replace('/dashboard')
+          } else {
+            setNeedsProfile(true)
+          }
+        })
+        .catch(async () => {
+          await supabase.auth.signOut()
+          router.replace('/login')
+        })
+        .finally(() => setChecking(false))
       })
-      .catch(() => setNeedsProfile(true))
-      .finally(() => setChecking(false))
   }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (role === 'patient' && !phone.trim()) { setError('연락처를 입력해주세요.'); return }
     if (!name.trim()) { setError('이름을 입력해주세요.'); return }
     if (isOtpUser && newPassword) {
       if (newPassword.length < 8) { setError('비밀번호는 8자 이상이어야 합니다.'); return }
@@ -59,7 +99,7 @@ export default function AuthCompletePage() {
       await authApi.registerProfile({
         name: name.trim(),
         role,
-        phone: phone || undefined,
+        phone: phone.trim() || undefined,
         nationality: role === 'patient' ? nationality : undefined,
         gender: role === 'patient' ? gender : undefined,
         visaType: role === 'patient' ? visaType : undefined,

@@ -62,6 +62,7 @@ export interface Patient {
   phone?: string
   region?: string
   workplaceName?: string
+  accountLinked: boolean
   createdAt: string
   updatedAt: string
 }

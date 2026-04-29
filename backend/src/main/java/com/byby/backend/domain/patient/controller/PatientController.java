@@ -45,10 +45,11 @@ public class PatientController {
     @PreAuthorize("hasAnyRole('interpreter', 'admin')")
     @Operation(summary = "이주민 목록 조회")
     public ResponseEntity<Response<List<PatientResponse.Summary>>> getAll(
+            @RequestParam(required = false) String query,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(
-                Response.success(SuccessCode.OK, patientService.getAll(pageable, principal)));
+                Response.success(SuccessCode.OK, patientService.getAll(query, pageable, principal)));
     }
 
     @GetMapping("/{id}")

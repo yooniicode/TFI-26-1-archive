@@ -40,9 +40,9 @@ public class InterpreterService {
         return InterpreterResponse.Detail.from(interpreterRepository.save(interpreter));
     }
 
-    public Page<InterpreterResponse.Summary> getAll(Pageable pageable, UserPrincipal principal) {
+    public Page<InterpreterResponse.Summary> getAll(String query, Pageable pageable, UserPrincipal principal) {
         if (!principal.isAdmin()) throw new GeneralException(GeneralErrorCode.FORBIDDEN);
-        return interpreterRepository.findAll(pageable).map(InterpreterResponse.Summary::from);
+        return interpreterRepository.search(query, pageable).map(InterpreterResponse.Summary::from);
     }
 
     public InterpreterResponse.Detail getById(UUID id, UserPrincipal principal) {

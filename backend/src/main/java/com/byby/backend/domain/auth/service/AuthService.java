@@ -22,6 +22,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -86,6 +87,11 @@ public class AuthService {
 
     private void registerPatientProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {
         if (patientRepository.existsByAuthUserId(principal.getAuthUserId())) return;
+        Optional<Patient> existingPatient = findClaimablePatient(req);
+        if (existingPatient.isPresent()) {
+            existingPatient.get().linkAuthUser(principal.getAuthUserId());
+            return;
+        }
         if (req.nationality() == null || req.gender() == null || req.visaType() == null) {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "nationality, gender, visaType are required for patient");
         }
@@ -102,6 +108,14 @@ public class AuthService {
                 .workplaceName(req.workplaceName())
                 .build();
         patientRepository.save(patient);
+    }
+
+    private Optional<Patient> findClaimablePatient(AuthRequest.RegisterProfile req) {
+        if (!StringUtils.hasText(req.name()) || !StringUtils.hasText(req.phone())) {
+            return Optional.empty();
+        }
+        return patientRepository.findFirstByAuthUserIdIsNullAndNameIgnoreCaseAndPhone(
+                req.name().trim(), req.phone().trim());
     }
 
     private void registerInterpreterProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {

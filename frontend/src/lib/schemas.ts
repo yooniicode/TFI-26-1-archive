@@ -29,8 +29,9 @@ export const patientSchema = z.object({
   phone:         nullableString,
   region:        nullableString,
   workplaceName: nullableString,
+  accountLinked: z.boolean().optional().default(false),
   createdAt:     z.string(),
-  updatedAt:     z.string(),
+  updatedAt:     z.string().optional().default(''),
 })
 
 export const interpreterSchema = z.object({

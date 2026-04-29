@@ -26,7 +26,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleLogout() {
     await createClient().auth.signOut()
-    router.push('/login')
+    router.replace('/login')
+    router.refresh()
   }
 
   const visibleNav = me ? NAV.filter(n => n.roles.includes(me.role)) : []
@@ -47,6 +48,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               className="btn-primary w-full"
             >
               정보 입력하러 가기
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="btn-secondary w-full mt-2"
+            >
+              로그아웃
             </button>
           </div>
         </div>

@@ -18,11 +18,13 @@ public class PatientResponse {
             Gender gender,
             VisaType visaType,
             String region,
+            boolean accountLinked,
             LocalDateTime createdAt
     ) {
         public static Summary from(Patient p) {
             return new Summary(p.getId(), p.getName(), p.getNationality(),
-                    p.getGender(), p.getVisaType(), p.getRegion(), p.getCreatedAt());
+                    p.getGender(), p.getVisaType(), p.getRegion(),
+                    p.getAuthUserId() != null, p.getCreatedAt());
         }
     }
 
@@ -37,13 +39,15 @@ public class PatientResponse {
             String phone,
             String region,
             String workplaceName,
+            boolean accountLinked,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
         public static Detail from(Patient p) {
             return new Detail(p.getId(), p.getName(), p.getNationality(), p.getGender(),
                     p.getVisaType(), p.getVisaNote(), p.getBirthDate(), p.getPhone(),
-                    p.getRegion(), p.getWorkplaceName(), p.getCreatedAt(), p.getUpdatedAt());
+                    p.getRegion(), p.getWorkplaceName(), p.getAuthUserId() != null,
+                    p.getCreatedAt(), p.getUpdatedAt());
         }
     }
 }

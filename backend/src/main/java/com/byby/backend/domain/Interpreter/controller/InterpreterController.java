@@ -42,10 +42,11 @@ public class InterpreterController {
     @PreAuthorize("hasAnyRole('interpreter', 'admin')")
     @Operation(summary = "통번역가 목록 조회")
     public ResponseEntity<Response<List<InterpreterResponse.Summary>>> getAll(
+            @RequestParam(required = false) String query,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(
-                Response.success(SuccessCode.OK, interpreterService.getAll(pageable, principal)));
+                Response.success(SuccessCode.OK, interpreterService.getAll(query, pageable, principal)));
     }
 
     @GetMapping("/{id}")

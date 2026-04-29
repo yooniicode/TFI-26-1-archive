@@ -33,10 +33,7 @@ public class PatientService {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
         UUID authUserId = principal.isAdmin() ? req.authUserId() : principal.getAuthUserId();
-        if (authUserId == null) {
-            throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "authUserId is required");
-        }
-        if (patientRepository.existsByAuthUserId(authUserId)) {
+        if (authUserId != null && patientRepository.existsByAuthUserId(authUserId)) {
             throw new BusinessException(BusinessErrorCode.PATIENT_ALREADY_EXISTS);
         }
         Patient patient = Patient.builder()
@@ -54,14 +51,14 @@ public class PatientService {
         return PatientResponse.Detail.from(patientRepository.save(patient));
     }
 
-    public Page<PatientResponse.Summary> getAll(Pageable pageable, UserPrincipal principal) {
+    public Page<PatientResponse.Summary> getAll(String query, Pageable pageable, UserPrincipal principal) {
         if (principal.isAdmin()) {
-            return patientRepository.findAll(pageable).map(PatientResponse.Summary::from);
+            return patientRepository.search(query, pageable).map(PatientResponse.Summary::from);
         }
         if (principal.isInterpreter()) {
             Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
                     .orElseThrow(() -> new BusinessException(BusinessErrorCode.INTERPRETER_NOT_FOUND));
-            return patientRepository.findAssignedToInterpreter(interpreter.getId(), pageable)
+            return patientRepository.searchAssignedToInterpreter(interpreter.getId(), query, pageable)
                     .map(PatientResponse.Summary::from);
         }
         throw new GeneralException(GeneralErrorCode.FORBIDDEN);

@@ -2,14 +2,14 @@ export const queryKeys = {
   me: ['me'] as const,
 
   patients: {
-    list:      (page: number) => ['patients', 'list', page] as const,
+    list:      (page: number, query = '') => ['patients', 'list', page, query] as const,
     detail:    (id: string)   => ['patients', id] as const,
     history:   (id: string, page: number) => ['patients', id, 'history', page] as const,
     myRecords: (id: string, page: number) => ['patients', id, 'my-records', page] as const,
   },
 
   interpreters: {
-    list:   (page: number) => ['interpreters', 'list', page] as const,
+    list:   (page: number, query = '') => ['interpreters', 'list', page, query] as const,
     detail: (id: string)   => ['interpreters', id] as const,
   },
 

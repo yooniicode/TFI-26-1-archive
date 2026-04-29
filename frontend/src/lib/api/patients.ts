@@ -1,8 +1,14 @@
 import { get, post, put } from './client'
 import { schemas } from '../schemas'
 
+function listPath(page: number, query?: string) {
+  const params = new URLSearchParams({ page: String(page), size: '20' })
+  if (query?.trim()) params.set('query', query.trim())
+  return `/patients?${params.toString()}`
+}
+
 export const patientApi = {
-  list:      (page = 0) => get(`/patients?page=${page}&size=20`, schemas.patients),
+  list:      (page = 0, query?: string) => get(listPath(page, query), schemas.patients),
   get:       (id: string) => get(`/patients/${id}`, schemas.patient),
   create:    (body: unknown) => post('/patients', body, schemas.patient),
   update:    (id: string, body: unknown) => put(`/patients/${id}`, body, schemas.patient),
