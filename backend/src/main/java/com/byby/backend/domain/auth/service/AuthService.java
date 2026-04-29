@@ -73,7 +73,7 @@ public class AuthService {
                     .header("Authorization", "Bearer " + supabaseServiceKey)
                     .header("apikey", supabaseServiceKey)
                     .header("Content-Type", "application/json")
-                    .method("PATCH", HttpRequest.BodyPublishers.ofString(body))
+                    .method("PUT", HttpRequest.BodyPublishers.ofString(body))
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 300) {

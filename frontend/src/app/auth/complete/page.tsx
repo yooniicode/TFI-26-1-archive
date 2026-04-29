@@ -29,7 +29,8 @@ export default function AuthCompletePage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.access_token) {
         try {
-          const payload = JSON.parse(atob(session.access_token.split('.')[1]))
+          const b64 = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+          const payload = JSON.parse(atob(b64))
           setIsOtpUser(payload.amr?.some((a: { method: string }) => a.method === 'otp') ?? false)
         } catch { /* ignore decode errors */ }
       }

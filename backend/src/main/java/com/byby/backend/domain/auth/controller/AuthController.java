@@ -57,22 +57,18 @@ public class AuthController {
     }
 
     private String resolveName(UserPrincipal principal) {
-        return switch (principal.getRole()) {
-            case interpreter -> interpreterRepository.findByAuthUserId(principal.getAuthUserId())
-                    .map(i -> i.getName()).orElse(null);
-            case patient -> patientRepository.findByAuthUserId(principal.getAuthUserId())
-                    .map(p -> p.getName()).orElse(null);
-            case admin -> "관리자";
-        };
+        if (principal.getRole() == com.byby.backend.common.enums.UserRole.admin) return "관리자";
+        return interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+                .map(i -> i.getName())
+                .or(() -> patientRepository.findByAuthUserId(principal.getAuthUserId()).map(p -> p.getName()))
+                .orElse(null);
     }
 
     private java.util.UUID resolveEntityId(UserPrincipal principal) {
-        return switch (principal.getRole()) {
-            case interpreter -> interpreterRepository.findByAuthUserId(principal.getAuthUserId())
-                    .map(i -> i.getId()).orElse(null);
-            case patient -> patientRepository.findByAuthUserId(principal.getAuthUserId())
-                    .map(p -> p.getId()).orElse(null);
-            case admin -> null;
-        };
+        if (principal.getRole() == com.byby.backend.common.enums.UserRole.admin) return null;
+        return interpreterRepository.findByAuthUserId(principal.getAuthUserId())
+                .map(i -> i.getId())
+                .or(() -> patientRepository.findByAuthUserId(principal.getAuthUserId()).map(p -> p.getId()))
+                .orElse(null);
     }
 }
