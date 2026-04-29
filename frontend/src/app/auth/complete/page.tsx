@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
+import { createClient } from '@/lib/supabase'
 import type { Gender, InterpreterRole, Nationality, UserRole, VisaType } from '@/lib/types'
 
 export default function AuthCompletePage() {
   const router = useRouter()
   const [checking, setChecking] = useState(true)
   const [needsProfile, setNeedsProfile] = useState(false)
+  const [isOtpUser, setIsOtpUser] = useState(false)
 
   const [name, setName] = useState('')
   const [role, setRole] = useState<Extract<UserRole, 'interpreter' | 'patient'>>('patient')
@@ -17,12 +19,29 @@ export default function AuthCompletePage() {
   const [gender, setGender] = useState<Gender>('OTHER')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [interpreterRole, setInterpreterRole] = useState<InterpreterRole>('FREELANCER')
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        try {
+          const payload = JSON.parse(atob(session.access_token.split('.')[1]))
+          setIsOtpUser(payload.amr?.some((a: { method: string }) => a.method === 'otp') ?? false)
+        } catch { /* ignore decode errors */ }
+      }
+    })
     authApi.me()
-      .then(() => router.replace('/dashboard'))
+      .then((res) => {
+        if (res.payload?.entityId) {
+          router.replace('/dashboard')
+        } else {
+          setNeedsProfile(true)
+        }
+      })
       .catch(() => setNeedsProfile(true))
       .finally(() => setChecking(false))
   }, [router])
@@ -30,16 +49,25 @@ export default function AuthCompletePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) { setError('이름을 입력해주세요.'); return }
+    if (isOtpUser && newPassword) {
+      if (newPassword.length < 8) { setError('비밀번호는 8자 이상이어야 합니다.'); return }
+      if (newPassword !== newPasswordConfirm) { setError('비밀번호가 일치하지 않습니다.'); return }
+    }
     setLoading(true); setError('')
     try {
       await authApi.registerProfile({
         name: name.trim(),
+        role,
         phone: phone || undefined,
         nationality: role === 'patient' ? nationality : undefined,
         gender: role === 'patient' ? gender : undefined,
         visaType: role === 'patient' ? visaType : undefined,
         interpreterRole: role === 'interpreter' ? interpreterRole : undefined,
       })
+      if (isOtpUser && newPassword) {
+        await createClient().auth.updateUser({ password: newPassword })
+      }
+      await createClient().auth.refreshSession()
       router.replace('/dashboard')
     } catch (e) {
       setError(e instanceof Error ? e.message : '프로필 저장에 실패했습니다.')
@@ -171,6 +199,34 @@ export default function AuthCompletePage() {
                 <option value="FREELANCER">프리랜서</option>
                 <option value="STAFF">센터직원</option>
               </select>
+            </div>
+          )}
+
+          {isOtpUser && (
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-xs text-gray-500">비밀번호를 설정하면 이메일+비밀번호로도 로그인할 수 있어요. (선택)</p>
+              <div>
+                <label className="label">비밀번호</label>
+                <input
+                  type="password"
+                  className="input"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="8자 이상"
+                />
+              </div>
+              {newPassword && (
+                <div>
+                  <label className="label">비밀번호 확인</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={newPasswordConfirm}
+                    onChange={e => setNewPasswordConfirm(e.target.value)}
+                    placeholder="비밀번호 재입력"
+                  />
+                </div>
+              )}
             </div>
           )}
 
