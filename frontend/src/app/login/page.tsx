@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { authApi } from '@/lib/api'
 import type { Gender, InterpreterRole, Nationality, UserRole, VisaType } from '@/lib/types'
 
 export default function LoginPage() {
@@ -25,43 +24,13 @@ export default function LoginPage() {
   const [magicSent, setMagicSent] = useState(false)
   const [signupDone, setSignupDone] = useState(false)
 
-  async function ensureProfile() {
-    const supabase = createClient()
-    const { data } = await supabase.auth.getUser()
-    const user = data.user
-    if (!user) return
-
-    const userRole = user.user_metadata?.app_role ?? user.user_metadata?.role ?? role
-    const resolvedName = String(
-      user.user_metadata?.name ??
-      name ??
-      user.email?.split('@')[0] ??
-      '사용자',
-    ).trim()
-    await authApi.registerProfile({
-      name: resolvedName,
-      phone: phone || undefined,
-      nationality: userRole === 'patient' ? nationality : undefined,
-      gender: userRole === 'patient' ? gender : undefined,
-      visaType: userRole === 'patient' ? visaType : undefined,
-      interpreterRole: userRole === 'interpreter' ? interpreterRole : undefined,
-    })
-  }
-
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError(error.message); setLoading(false); return }
-    try {
-      await ensureProfile()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '프로필 생성에 실패했습니다.')
-      setLoading(false)
-      return
-    }
-    router.push('/dashboard')
+    router.push('/auth/complete')
   }
 
   async function handleMagicLink() {
@@ -110,15 +79,7 @@ export default function LoginPage() {
     if (error) { setError(error.message); setLoading(false); return }
 
     if (data.session) {
-      // Email confirmation disabled → 즉시 로그인됨
-      try {
-        await ensureProfile()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : '프로필 생성에 실패했습니다.')
-        setLoading(false)
-        return
-      }
-      router.push('/dashboard')
+      router.push('/auth/complete')
     } else {
       setSignupDone(true)
       setLoading(false)
