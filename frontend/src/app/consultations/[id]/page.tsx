@@ -79,7 +79,6 @@ export default function ConsultationDetailPage() {
     ['국적', data.patientNationality ? NATIONALITY_LABEL[data.patientNationality] : null],
     ['성별', data.patientGender ? GENDER_LABEL[data.patientGender] : null],
     ['비자', data.patientVisaType ? VISA_LABEL[data.patientVisaType] : null],
-    ['사업장명', data.patientWorkplaceName],
     ['지역', data.patientRegion],
     ['전화번호', data.patientPhone],
   ]
