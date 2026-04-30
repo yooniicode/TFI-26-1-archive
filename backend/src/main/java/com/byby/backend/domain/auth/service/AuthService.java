@@ -97,6 +97,16 @@ public class AuthService {
 
         UserRole effectiveRole = principal.getRole();
 
+        // JWT role may still be 'patient' during Supabase role sync delay.
+        // A pending interpreter record (created by completeSignup after email verify) is the safe gate.
+        boolean hasPendingInterpreter = req.role() == UserRole.interpreter
+                && interpreterRepository.existsByAuthUserId(principal.getAuthUserId());
+
+        if (effectiveRole == UserRole.interpreter || hasPendingInterpreter) {
+            registerInterpreterProfile(req, principal);
+            updateSupabaseRole(principal, UserRole.interpreter);
+            return;
+        }
         if (effectiveRole == UserRole.patient) {
             if (req.role() != null && req.role() != UserRole.patient) {
                 throw new GeneralException(GeneralErrorCode.FORBIDDEN, "센터 직원 승인 후 사용할 수 있는 계정입니다");
@@ -106,11 +116,6 @@ public class AuthService {
             }
             registerPatientProfile(req, principal);
             updateSupabaseRole(principal, UserRole.patient);
-            return;
-        }
-        if (effectiveRole == UserRole.interpreter) {
-            registerInterpreterProfile(req, principal);
-            updateSupabaseRole(principal, UserRole.interpreter);
             return;
         }
         throw new GeneralException(GeneralErrorCode.FORBIDDEN);
@@ -625,7 +630,20 @@ public class AuthService {
     }
 
     private void registerInterpreterProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {
-        if (interpreterRepository.existsByAuthUserId(principal.getAuthUserId())) return;
+        Optional<Interpreter> existing = interpreterRepository.findByAuthUserId(principal.getAuthUserId());
+        if (existing.isPresent()) {
+            Interpreter interpreter = existing.get();
+            InterpreterRole role = req.interpreterRole() != null ? req.interpreterRole() : interpreter.getRole();
+            interpreter.updateInfo(trimToNull(req.name()), trimToNull(req.phone()), role,
+                    req.languages(), trimToNull(req.availabilityNote()));
+            Center center = req.centerId() != null
+                    ? centerService.find(req.centerId())
+                    : StringUtils.hasText(req.centerName())
+                        ? centerService.getOrCreateByName(req.centerName())
+                        : null;
+            if (center != null) interpreter.updateCenter(center);
+            return;
+        }
         if (req.interpreterRole() == null) {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "interpreterRole is required");
         }
