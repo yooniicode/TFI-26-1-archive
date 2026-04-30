@@ -6,6 +6,7 @@ import { authApi } from '@/lib/api'
 import { getRequestedMemberRole, type RequestedMemberRole } from '@/lib/authMetadata'
 import { createClient } from '@/lib/supabase'
 import type { Gender, Nationality, UserRole, VisaType } from '@/lib/types'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 const requestedRoleLabel = (request: RequestedMemberRole) => {
   if (request.role === 'admin') return '센터 직원'
@@ -164,12 +165,11 @@ export default function AuthCompletePage() {
                   onChange={e => setBootstrapCenterName(e.target.value)}
                   placeholder="근무 센터"
                 />
-                <input
-                  className="input text-left"
-                  type="password"
+                <PasswordInput
                   value={bootstrapCode}
-                  onChange={e => setBootstrapCode(e.target.value)}
+                  onChange={setBootstrapCode}
                   placeholder="관리자 초기 가입 코드"
+                  className="input text-left"
                 />
                 <button
                   type="button"
@@ -297,23 +297,27 @@ export default function AuthCompletePage() {
               <p className="text-xs text-gray-500">비밀번호를 설정하면 이메일/비밀번호로도 로그인할 수 있습니다. 선택 사항입니다.</p>
               <div>
                 <label className="label">비밀번호</label>
-                <input
-                  type="password"
-                  className="input"
+                <PasswordInput
                   value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
+                  onChange={setNewPassword}
                   placeholder="8자 이상"
+                  autoComplete="new-password"
                 />
               </div>
               {newPassword && (
                 <div>
                   <label className="label">비밀번호 확인</label>
-                  <input
-                    type="password"
-                    className="input"
+                  <PasswordInput
                     value={newPasswordConfirm}
-                    onChange={e => setNewPasswordConfirm(e.target.value)}
+                    onChange={setNewPasswordConfirm}
+                    placeholder="비밀번호 재입력"
+                    autoComplete="new-password"
                   />
+                  {newPasswordConfirm && (
+                    <p className={`text-xs mt-1 ${newPassword === newPasswordConfirm ? 'text-green-600' : 'text-red-500'}`}>
+                      {newPassword === newPasswordConfirm ? '비밀번호가 일치합니다.' : '비밀번호가 일치하지 않습니다.'}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { authApi } from '@/lib/api'
 import { getRequestedMemberRole, type RequestedMemberRole } from '@/lib/authMetadata'
 import type { AuthMe } from '@/lib/types'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 interface AuthGateOverlaysProps {
   me?: AuthMe
@@ -114,12 +115,11 @@ export default function AuthGateOverlays({ me, pathname }: AuthGateOverlaysProps
                   onChange={e => setBootstrapCenterName(e.target.value)}
                   placeholder="근무 센터"
                 />
-                <input
-                  className="input mb-2"
-                  type="password"
+                <PasswordInput
                   value={bootstrapCode}
-                  onChange={e => setBootstrapCode(e.target.value)}
+                  onChange={setBootstrapCode}
                   placeholder="관리자 초기 가입 코드"
+                  className="input mb-2"
                 />
                 <button
                   type="button"

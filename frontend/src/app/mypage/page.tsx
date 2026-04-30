@@ -10,6 +10,7 @@ import { useMe } from '@/hooks/useMe'
 import type { AdminWorkLog, AdminWorkLogTask, Center, Patient, Interpreter, VisaType } from '@/lib/types'
 import { VISA_LABEL } from '@/lib/types'
 import Spinner from '@/components/ui/Spinner'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function MyPage() {
   const queryClient = useQueryClient()
@@ -166,6 +167,27 @@ export default function MyPage() {
       idx === index ? { ...task, checked: !task.checked } : task,
     )
     updateWorkLog({ ...log, tasks })
+  }
+
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState(false)
+  const [pwSaving, setPwSaving] = useState(false)
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault()
+    setPwError('')
+    setPwSuccess(false)
+    if (newPassword.length < 8) { setPwError('비밀번호는 8자 이상이어야 합니다.'); return }
+    if (newPassword !== confirmPassword) { setPwError('비밀번호 확인이 일치하지 않습니다.'); return }
+    setPwSaving(true)
+    const { error } = await createClient().auth.updateUser({ password: newPassword })
+    setPwSaving(false)
+    if (error) { setPwError(error.message); return }
+    setPwSuccess(true)
+    setNewPassword('')
+    setConfirmPassword('')
   }
 
   async function handleLogout() {
@@ -330,6 +352,44 @@ export default function MyPage() {
             </button>
           </form>
         )}
+
+        <div className="border-t pt-5">
+          <h2 className="font-semibold text-sm mb-3">비밀번호 변경</h2>
+          <form onSubmit={handlePasswordChange} className="space-y-3">
+            <div>
+              <label className="label">새 비밀번호</label>
+              <PasswordInput
+                value={newPassword}
+                onChange={setNewPassword}
+                placeholder="8자 이상"
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <label className="label">비밀번호 확인</label>
+              <PasswordInput
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="비밀번호 재입력"
+                autoComplete="new-password"
+              />
+              {confirmPassword && (
+                <p className={`text-xs mt-1 ${newPassword === confirmPassword ? 'text-green-600' : 'text-red-500'}`}>
+                  {newPassword === confirmPassword ? '비밀번호가 일치합니다.' : '비밀번호가 일치하지 않습니다.'}
+                </p>
+              )}
+            </div>
+            {pwError && <p className="text-red-500 text-xs">{pwError}</p>}
+            {pwSuccess && <p className="text-green-600 text-xs">비밀번호가 변경되었습니다.</p>}
+            <button
+              type="submit"
+              className="btn-secondary w-full"
+              disabled={pwSaving || !newPassword || !confirmPassword}
+            >
+              {pwSaving ? '변경 중...' : '비밀번호 변경'}
+            </button>
+          </form>
+        </div>
 
         <div className="border-t pt-4">
           <button

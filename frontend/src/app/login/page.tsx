@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import type { Gender, Nationality, VisaType } from '@/lib/types'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 type SignupType = 'patient' | 'admin' | 'interpreter' | 'freelancer'
 
@@ -37,10 +38,6 @@ export default function LoginPage() {
 
   async function handleMagicLink() {
     if (!email) { setError('이메일을 입력해주세요.'); return }
-    if (accountType !== 'patient' && !centerName.trim()) {
-      setError('근무 센터를 입력해주세요.')
-      return
-    }
     setLoading(true); setError('')
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
@@ -276,25 +273,28 @@ export default function LoginPage() {
             )}
             <div>
               <label className="label">비밀번호</label>
-              <input
-                type="password"
-                className="input"
+              <PasswordInput
                 value={signupPassword}
-                onChange={e => setSignupPassword(e.target.value)}
+                onChange={setSignupPassword}
                 placeholder="8자 이상"
                 required
+                autoComplete="new-password"
               />
             </div>
             <div>
               <label className="label">비밀번호 확인</label>
-              <input
-                type="password"
-                className="input"
+              <PasswordInput
                 value={signupPasswordConfirm}
-                onChange={e => setSignupPasswordConfirm(e.target.value)}
+                onChange={setSignupPasswordConfirm}
                 placeholder="비밀번호 재입력"
                 required
+                autoComplete="new-password"
               />
+              {signupPasswordConfirm && (
+                <p className={`text-xs mt-1 ${signupPassword === signupPasswordConfirm ? 'text-green-600' : 'text-red-500'}`}>
+                  {signupPassword === signupPasswordConfirm ? '비밀번호가 일치합니다.' : '비밀번호가 일치하지 않습니다.'}
+                </p>
+              )}
             </div>
 
             {error && <p className="text-red-500 text-xs">{error}</p>}
@@ -319,12 +319,11 @@ export default function LoginPage() {
               </div>
               <div>
                 <label className="label">비밀번호</label>
-                <input
-                  type="password"
-                  className="input"
+                <PasswordInput
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={setPassword}
                   placeholder="비밀번호"
+                  autoComplete="current-password"
                 />
               </div>
 
