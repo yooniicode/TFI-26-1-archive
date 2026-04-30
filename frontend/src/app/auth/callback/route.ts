@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const token_hash = searchParams.get('token_hash')
-  const type = searchParams.get('type') as EmailOtpType | null  const next = searchParams.get('next')
+  const type = searchParams.get('type') as EmailOtpType | null
+  const next = searchParams.get('next')
   // Docker 내부 hostname 대신 브라우저가 실제 접속한 host 사용
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
   const proto = request.headers.get('x-forwarded-proto') ?? 'http'
