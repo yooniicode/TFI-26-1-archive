@@ -92,7 +92,7 @@ spring:
       on-profile: prod
 
   datasource:
-    url: ${DATABASE_URL}
+    url: ${DATABASE_URL}?prepareThreshold=0
     hikari:
       maximum-pool-size: 10
       connection-timeout: 5000
