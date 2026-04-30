@@ -6,6 +6,7 @@ import com.byby.backend.common.enums.Nationality;
 import com.byby.backend.common.enums.UserRole;
 import com.byby.backend.common.enums.VisaType;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import java.util.UUID;
 
 public class AuthRequest {
@@ -21,7 +22,9 @@ public class AuthRequest {
             String region,
             InterpreterRole interpreterRole,
             UUID centerId,
-            String centerName
+            String centerName,
+            List<String> languages,
+            String availabilityNote
     ) {}
 
     public record UpdateMemberRole(

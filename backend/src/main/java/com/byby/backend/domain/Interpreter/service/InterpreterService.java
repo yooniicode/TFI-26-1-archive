@@ -49,6 +49,7 @@ public class InterpreterService {
                 .role(req.role())
                 .center(center)
                 .languages(req.languages())
+                .availabilityNote(req.availabilityNote())
                 .build();
         return InterpreterResponse.Detail.from(interpreterRepository.save(interpreter));
     }
@@ -83,7 +84,7 @@ public class InterpreterService {
         if (!principal.isAdmin() && req.role() != null && req.role() != interpreter.getRole()) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN, "Only center staff can change interpreter roles");
         }
-        interpreter.updateInfo(req.name(), req.phone(), req.role());
+        interpreter.updateInfo(req.name(), req.phone(), req.role(), req.languages(), req.availabilityNote());
         return InterpreterResponse.Detail.from(interpreter);
     }
 

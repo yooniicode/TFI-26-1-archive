@@ -42,24 +42,35 @@ public class Interpreter extends BaseEntity {
     @Column(name = "language")
     private List<String> languages = new ArrayList<>();
 
+    @Column(name = "availability_note", length = 500)
+    private String availabilityNote;
+
     @Column(nullable = false)
     private boolean active = true;
 
     @Builder
     public Interpreter(UUID authUserId, String name, String phone,
-                       InterpreterRole role, Center center, List<String> languages) {
+                       InterpreterRole role, Center center, List<String> languages,
+                       String availabilityNote) {
         this.authUserId = authUserId;
         this.name = name;
         this.phone = phone;
         this.role = role;
         this.center = center;
         this.languages = languages != null ? languages : new ArrayList<>();
+        this.availabilityNote = availabilityNote;
     }
 
-    public void updateInfo(String name, String phone, InterpreterRole role) {
+    public void updateInfo(String name, String phone, InterpreterRole role,
+                           List<String> languages, String availabilityNote) {
         if (name != null) this.name = name;
         if (phone != null) this.phone = phone;
         if (role != null) this.role = role;
+        if (languages != null) {
+            this.languages.clear();
+            this.languages.addAll(languages);
+        }
+        if (availabilityNote != null) this.availabilityNote = availabilityNote;
     }
 
     public void updateAdminInfo(String name, String phone, InterpreterRole role) {

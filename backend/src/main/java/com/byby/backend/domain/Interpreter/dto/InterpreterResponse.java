@@ -16,13 +16,14 @@ public class InterpreterResponse {
             UUID centerId,
             String centerName,
             List<String> languages,
+            String availabilityNote,
             boolean active
     ) {
         public static Summary from(Interpreter i) {
             return new Summary(i.getId(), i.getName(), i.getRole(),
                     i.getCenter() != null ? i.getCenter().getId() : null,
                     i.getCenter() != null ? i.getCenter().getName() : null,
-                    List.copyOf(i.getLanguages()), i.isActive());
+                    List.copyOf(i.getLanguages()), i.getAvailabilityNote(), i.isActive());
         }
     }
 
@@ -34,6 +35,7 @@ public class InterpreterResponse {
             UUID centerId,
             String centerName,
             List<String> languages,
+            String availabilityNote,
             boolean active,
             LocalDateTime createdAt
     ) {
@@ -41,7 +43,7 @@ public class InterpreterResponse {
             return new Detail(i.getId(), i.getName(), i.getPhone(), i.getRole(),
                     i.getCenter() != null ? i.getCenter().getId() : null,
                     i.getCenter() != null ? i.getCenter().getName() : null,
-                    List.copyOf(i.getLanguages()), i.isActive(), i.getCreatedAt());
+                    List.copyOf(i.getLanguages()), i.getAvailabilityNote(), i.isActive(), i.getCreatedAt());
         }
     }
 }

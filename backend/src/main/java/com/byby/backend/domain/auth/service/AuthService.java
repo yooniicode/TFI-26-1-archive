@@ -644,6 +644,8 @@ public class AuthService {
                 .phone(req.phone())
                 .role(req.interpreterRole())
                 .center(center)
+                .languages(req.languages())
+                .availabilityNote(trimToNull(req.availabilityNote()))
                 .build();
         interpreterRepository.save(interpreter);
     }

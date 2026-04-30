@@ -43,6 +43,7 @@ CREATE TABLE interpreter (
     phone        VARCHAR(20),
     role         VARCHAR(50)  NOT NULL,
     center_id    UUID                  REFERENCES center(id),
+    availability_note VARCHAR(500),
     active       BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMP    NOT NULL DEFAULT NOW()

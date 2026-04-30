@@ -16,12 +16,15 @@ public class InterpreterRequest {
             @NotNull InterpreterRole role,
             UUID centerId,
             String centerName,
-            List<String> languages
+            List<String> languages,
+            String availabilityNote
     ) {}
 
     public record Update(
             String name,
             String phone,
-            InterpreterRole role
+            InterpreterRole role,
+            List<String> languages,
+            String availabilityNote
     ) {}
 }

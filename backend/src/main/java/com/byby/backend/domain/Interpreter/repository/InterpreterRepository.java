@@ -29,6 +29,7 @@ public interface InterpreterRepository extends JpaRepository<Interpreter, UUID> 
                   OR :query = ''
                   OR LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(COALESCE(i.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+                  OR LOWER(COALESCE(i.availabilityNote, '')) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(COALESCE(language, '')) LIKE LOWER(CONCAT('%', :query, '%'))
               )
             """)
@@ -44,6 +45,7 @@ public interface InterpreterRepository extends JpaRepository<Interpreter, UUID> 
                   OR :query = ''
                   OR LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(COALESCE(i.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+                  OR LOWER(COALESCE(i.availabilityNote, '')) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(COALESCE(language, '')) LIKE LOWER(CONCAT('%', :query, '%'))
               )
             """)
