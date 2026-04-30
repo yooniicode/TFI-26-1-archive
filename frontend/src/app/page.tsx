@@ -23,7 +23,31 @@ const FEATURES = [
   },
 ]
 
-export default function LandingPage() {
+interface CenterSummary {
+  id: string
+  name: string
+  address?: string | null
+  phone?: string | null
+  active: boolean
+}
+
+async function fetchCenters(): Promise<CenterSummary[]> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+    const res = await fetch(`${apiUrl}/api/v1/centers?page=0&size=100`, {
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.payload ?? []) as CenterSummary[]
+  } catch {
+    return []
+  }
+}
+
+export default async function LandingPage() {
+  const centers = await fetchCenters()
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
@@ -74,8 +98,48 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Participating Centers */}
+      {centers.length > 0 && (
+        <section className="py-16 px-6">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">
+              참여 센터
+            </h2>
+            <p className="text-center text-sm text-gray-500 mb-10">
+              TFI를 도입한 이주민 지원 센터입니다.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {centers.map(center => (
+                <Link
+                  key={center.id}
+                  href="/login"
+                  className="group block rounded-xl border border-gray-200 bg-white p-5 hover:border-primary-300 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 text-sm font-bold">
+                      {center.name.charAt(0)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-800 group-hover:text-primary-700 transition-colors truncate">
+                        {center.name}
+                      </p>
+                      {center.address && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{center.address}</p>
+                      )}
+                      {center.phone && (
+                        <p className="text-xs text-gray-400 mt-0.5">{center.phone}</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* CTA */}
-      <section className="py-16 px-6 text-center">
+      <section className="py-16 px-6 text-center bg-gray-50">
         <h2 className="text-2xl font-bold text-gray-800 mb-3">
           지금 바로 사용해보세요
         </h2>
