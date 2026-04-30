@@ -99,7 +99,6 @@ spring:
       data-source-properties:
         sslmode: require
         sslrootcert: system
-        prepareThreshold: 0
 
   jpa:
     hibernate:
