@@ -32,7 +32,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))
                OR LOWER(COALESCE(p.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
                OR LOWER(COALESCE(p.region, '')) LIKE LOWER(CONCAT('%', :query, '%'))
-               OR LOWER(COALESCE(p.workplaceName, '')) LIKE LOWER(CONCAT('%', :query, '%'))
             """)
     Page<Patient> search(@Param("query") String query, Pageable pageable);
 
@@ -48,7 +47,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
                 OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))
                 OR LOWER(COALESCE(p.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
                 OR LOWER(COALESCE(p.region, '')) LIKE LOWER(CONCAT('%', :query, '%'))
-                OR LOWER(COALESCE(p.workplaceName, '')) LIKE LOWER(CONCAT('%', :query, '%'))
             )
             """)
     Page<Patient> searchAssignedToInterpreter(

@@ -6,8 +6,8 @@ import Link from 'next/link'
 import AppShell from '@/components/AppShell'
 import Badge from '@/components/ui/Badge'
 import Spinner from '@/components/ui/Spinner'
-import { adminApi, patientApi, authApi, handoverApi } from '@/lib/api'
-import type { Patient, Consultation, AuthMe, Handover, CenterPatientMemo } from '@/lib/types'
+import { adminApi, patientApi, authApi, handoverApi, centerApi } from '@/lib/api'
+import type { Patient, Consultation, AuthMe, Handover, CenterPatientMemo, Center } from '@/lib/types'
 import { NATIONALITY_LABEL, GENDER_LABEL, VISA_LABEL, ISSUE_LABEL } from '@/lib/types'
 
 export default function PatientDetailPage() {
@@ -24,6 +24,12 @@ export default function PatientDetailPage() {
   const [interpreterVisible, setInterpreterVisible] = useState(true)
   const [memoSaving, setMemoSaving] = useState(false)
   const [memoError, setMemoError] = useState('')
+
+  // Center search popup state
+  const [centerPopupOpen, setCenterPopupOpen] = useState(false)
+  const [centerSearchQuery, setCenterSearchQuery] = useState('')
+  const [allCenters, setAllCenters] = useState<Center[]>([])
+  const [centerActionLoading, setCenterActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -46,6 +52,13 @@ export default function PatientDetailPage() {
       .catch(() => setMemos([]))
   }, [id, me])
 
+  useEffect(() => {
+    if (!centerPopupOpen) return
+    centerApi.list(centerSearchQuery || undefined)
+      .then(res => setAllCenters(res.payload ?? []))
+      .catch(() => setAllCenters([]))
+  }, [centerPopupOpen, centerSearchQuery])
+
   async function handleMemoCreate(e: React.FormEvent) {
     e.preventDefault()
     setMemoSaving(true)
@@ -64,8 +77,40 @@ export default function PatientDetailPage() {
     }
   }
 
+  async function handleAddCenter(centerId: string) {
+    setCenterActionLoading(centerId)
+    try {
+      const res = await patientApi.addCenter(id, centerId)
+      setPatient(res.payload)
+      setCenterPopupOpen(false)
+      setCenterSearchQuery('')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : '센터 추가에 실패했습니다.')
+    } finally {
+      setCenterActionLoading(null)
+    }
+  }
+
+  async function handleRemoveCenter(centerId: string) {
+    if (!confirm('이 센터를 삭제하시겠습니까?')) return
+    setCenterActionLoading(centerId)
+    try {
+      const res = await patientApi.removeCenter(id, centerId)
+      setPatient(res.payload)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : '센터 삭제에 실패했습니다.')
+    } finally {
+      setCenterActionLoading(null)
+    }
+  }
+
   if (loading) return <AppShell><Spinner /></AppShell>
   if (!patient) return <AppShell><p className="text-center py-10 text-gray-400">이주민 정보를 찾을 수 없습니다.</p></AppShell>
+
+  const registeredCenterIds = new Set((patient.centers ?? []).map(c => c.id))
+  const filteredCenters = allCenters.filter(c =>
+    !centerSearchQuery || c.name.toLowerCase().includes(centerSearchQuery.toLowerCase())
+  )
 
   return (
     <AppShell>
@@ -84,14 +129,91 @@ export default function PatientDetailPage() {
           ['생년월일', patient.birthDate],
           ['연락처', patient.phone],
           ['거주지역', patient.region],
-          ['사업장', patient.workplaceName],
         ].filter(([, v]) => v).map(([label, value]) => (
           <div key={label as string} className="flex gap-2 mb-2">
             <span className="text-xs text-gray-500 w-16 flex-shrink-0">{label}</span>
             <span className="text-sm">{value}</span>
           </div>
         ))}
+
+        {/* 소속 센터 */}
+        <div className="flex gap-2 mt-2">
+          <span className="text-xs text-gray-500 w-16 flex-shrink-0 pt-1">소속 센터</span>
+          <div className="flex flex-wrap gap-1 flex-1">
+            {(patient.centers ?? []).map(center => (
+              <span key={center.id}
+                className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2 py-0.5">
+                {center.name}
+                {me?.role === 'admin' && (
+                  <button
+                    onClick={() => handleRemoveCenter(center.id)}
+                    disabled={centerActionLoading === center.id}
+                    className="text-blue-400 hover:text-red-500 ml-0.5 font-bold leading-none"
+                    aria-label={`${center.name} 제거`}
+                  >
+                    {centerActionLoading === center.id ? '…' : '×'}
+                  </button>
+                )}
+              </span>
+            ))}
+            {me?.role === 'admin' && (
+              <button
+                onClick={() => setCenterPopupOpen(true)}
+                className="text-xs text-gray-400 border border-dashed border-gray-300 rounded-full px-2 py-0.5 hover:border-blue-400 hover:text-blue-500"
+              >
+                + 센터 추가
+              </button>
+            )}
+            {(patient.centers ?? []).length === 0 && me?.role !== 'admin' && (
+              <span className="text-xs text-gray-400">등록된 센터 없음</span>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* 센터 검색 팝업 */}
+      {centerPopupOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center sm:items-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-sm p-4 space-y-3 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">센터 검색</h3>
+              <button onClick={() => { setCenterPopupOpen(false); setCenterSearchQuery('') }}
+                className="text-gray-400 text-lg leading-none">×</button>
+            </div>
+            <input
+              className="input"
+              placeholder="센터 이름 검색..."
+              value={centerSearchQuery}
+              onChange={e => setCenterSearchQuery(e.target.value)}
+              autoFocus
+            />
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {filteredCenters.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">검색 결과가 없습니다.</p>
+              ) : filteredCenters.map(center => {
+                const already = registeredCenterIds.has(center.id)
+                return (
+                  <button
+                    key={center.id}
+                    onClick={() => !already && handleAddCenter(center.id)}
+                    disabled={already || centerActionLoading === center.id}
+                    className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
+                      already
+                        ? 'bg-gray-50 text-gray-400 cursor-default'
+                        : 'hover:bg-blue-50 hover:text-blue-700'
+                    }`}
+                  >
+                    <span className="font-medium">{center.name}</span>
+                    {center.address && <span className="text-xs text-gray-400 ml-1">{center.address}</span>}
+                    {already && <span className="text-xs text-green-600 ml-1">이미 등록됨</span>}
+                    {centerActionLoading === center.id && <span className="text-xs ml-1">추가 중...</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 퀵 액션 */}
       {me?.role === 'interpreter' && (

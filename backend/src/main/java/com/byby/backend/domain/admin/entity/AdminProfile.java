@@ -34,7 +34,7 @@ public class AdminProfile extends BaseEntity {
     @Column(length = 200)
     private String centerName;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "center_id")
     private Center center;
 

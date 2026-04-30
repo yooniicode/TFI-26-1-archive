@@ -91,5 +91,5 @@ export const put   = <T>(path: string, data: unknown, schema?: z.ZodType<T>) =>
   request<T>('PUT', path, { data, schema })
 export const patch = <T>(path: string, data?: unknown, schema?: z.ZodType<T>) =>
   request<T>('PATCH', path, { data, schema })
-export const del   = <T>(path: string) =>
-  request<T>('DELETE', path)
+export const del   = <T>(path: string, schema?: z.ZodType<T>) =>
+  request<T>('DELETE', path, { schema })

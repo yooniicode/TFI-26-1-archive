@@ -536,7 +536,6 @@ public class AuthService {
                 .visaNote(req.visaNote())
                 .phone(req.phone())
                 .region(req.region())
-                .workplaceName(req.workplaceName())
                 .build();
         patientRepository.save(patient);
     }

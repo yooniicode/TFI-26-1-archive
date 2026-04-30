@@ -130,7 +130,7 @@ export default function NewConsultationPage() {
                 {NATIONALITY_LABEL[selectedPatient.nationality]} · {GENDER_LABEL[selectedPatient.gender]} · {VISA_LABEL[selectedPatient.visaType]}
               </p>
               <p>
-                {[selectedPatient.birthDate, selectedPatient.region, selectedPatient.workplaceName, selectedPatient.phone]
+                {[selectedPatient.birthDate, selectedPatient.region, selectedPatient.phone]
                   .filter(Boolean)
                   .join(' · ')}
               </p>

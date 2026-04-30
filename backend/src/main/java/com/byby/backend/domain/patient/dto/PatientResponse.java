@@ -3,10 +3,12 @@ package com.byby.backend.domain.patient.dto;
 import com.byby.backend.common.enums.Gender;
 import com.byby.backend.common.enums.Nationality;
 import com.byby.backend.common.enums.VisaType;
+import com.byby.backend.domain.center.dto.CenterResponse;
 import com.byby.backend.domain.patient.entity.Patient;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class PatientResponse {
@@ -38,15 +40,18 @@ public class PatientResponse {
             LocalDate birthDate,
             String phone,
             String region,
-            String workplaceName,
+            List<CenterResponse.Summary> centers,
             boolean accountLinked,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
         public static Detail from(Patient p) {
+            List<CenterResponse.Summary> centerList = p.getPatientCenters().stream()
+                    .map(pc -> CenterResponse.Summary.from(pc.getCenter()))
+                    .toList();
             return new Detail(p.getId(), p.getName(), p.getNationality(), p.getGender(),
                     p.getVisaType(), p.getVisaNote(), p.getBirthDate(), p.getPhone(),
-                    p.getRegion(), p.getWorkplaceName(), p.getAuthUserId() != null,
+                    p.getRegion(), centerList, p.getAuthUserId() != null,
                     p.getCreatedAt(), p.getUpdatedAt());
         }
     }

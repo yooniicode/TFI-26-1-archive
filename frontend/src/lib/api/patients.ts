@@ -1,4 +1,4 @@
-import { get, post, put } from './client'
+import { get, post, put, del } from './client'
 import { schemas } from '../schemas'
 
 function listPath(page: number, query?: string) {
@@ -12,8 +12,12 @@ export const patientApi = {
   get:       (id: string) => get(`/patients/${id}`, schemas.patient),
   create:    (body: unknown) => post('/patients', body, schemas.patient),
   update:    (id: string, body: unknown) => put(`/patients/${id}`, body, schemas.patient),
-  history:   (id: string, page = 0) =>
+  history:     (id: string, page = 0) =>
     get(`/patients/${id}/history?page=${page}&size=20`, schemas.consultations),
-  myRecords: (id: string, page = 0) =>
+  myRecords:   (id: string, page = 0) =>
     get(`/patients/${id}/my-records?page=${page}&size=20`, schemas.patientReports),
+  addCenter:    (id: string, centerId: string) =>
+    post(`/patients/${id}/centers/${centerId}`, undefined, schemas.patient),
+  removeCenter: (id: string, centerId: string) =>
+    del(`/patients/${id}/centers/${centerId}`, schemas.patient),
 }

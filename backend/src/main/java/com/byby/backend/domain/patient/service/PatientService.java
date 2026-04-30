@@ -5,12 +5,15 @@ import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
+import com.byby.backend.domain.center.repository.CenterRepository;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.matching.repository.PatientMatchRepository;
 import com.byby.backend.domain.patient.dto.PatientRequest;
 import com.byby.backend.domain.patient.dto.PatientResponse;
 import com.byby.backend.domain.patient.entity.Patient;
+import com.byby.backend.domain.patient.entity.PatientCenter;
+import com.byby.backend.domain.patient.repository.PatientCenterRepository;
 import com.byby.backend.domain.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,8 +29,10 @@ import java.util.UUID;
 public class PatientService {
 
     private final PatientRepository patientRepository;
+    private final PatientCenterRepository patientCenterRepository;
     private final InterpreterRepository interpreterRepository;
     private final PatientMatchRepository patientMatchRepository;
+    private final CenterRepository centerRepository;
 
     @Transactional
     public PatientResponse.Detail create(PatientRequest.Create req, UserPrincipal principal) {
@@ -48,9 +53,15 @@ public class PatientService {
                 .birthDate(req.birthDate())
                 .phone(req.phone())
                 .region(req.region())
-                .workplaceName(req.workplaceName())
                 .build();
-        return PatientResponse.Detail.from(patientRepository.save(patient));
+        Patient saved = patientRepository.save(patient);
+        if (req.centerIds() != null) {
+            req.centerIds().forEach(centerId ->
+                    centerRepository.findById(centerId).ifPresent(center ->
+                            patientCenterRepository.save(PatientCenter.builder()
+                                    .patient(saved).center(center).build())));
+        }
+        return PatientResponse.Detail.from(patientRepository.save(saved));
     }
 
     public Page<PatientResponse.Summary> getAll(String query, Pageable pageable, UserPrincipal principal) {
@@ -80,9 +91,32 @@ public class PatientService {
                 throw new GeneralException(GeneralErrorCode.FORBIDDEN);
             }
         }
-        patient.updateInfo(req.phone(), req.region(), req.workplaceName(),
-                req.visaNote(), req.visaType());
+        patient.updateInfo(req.phone(), req.region(), req.visaNote(), req.visaType());
         return PatientResponse.Detail.from(patient);
+    }
+
+    @Transactional
+    public PatientResponse.Detail addCenter(UUID patientId, UUID centerId, UserPrincipal principal) {
+        Patient patient = findPatient(patientId);
+        if (!principal.isAdmin()) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN);
+        }
+        if (patientCenterRepository.existsByPatientIdAndCenterId(patientId, centerId)) {
+            throw new BusinessException(BusinessErrorCode.PATIENT_CENTER_ALREADY_EXISTS);
+        }
+        centerRepository.findById(centerId).ifPresent(center ->
+                patientCenterRepository.save(PatientCenter.builder().patient(patient).center(center).build()));
+        return PatientResponse.Detail.from(patientRepository.findById(patientId).orElseThrow());
+    }
+
+    @Transactional
+    public PatientResponse.Detail removeCenter(UUID patientId, UUID centerId, UserPrincipal principal) {
+        if (!principal.isAdmin()) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN);
+        }
+        patientCenterRepository.findByPatientIdAndCenterId(patientId, centerId)
+                .ifPresent(patientCenterRepository::delete);
+        return PatientResponse.Detail.from(findPatient(patientId));
     }
 
     private Patient findPatient(UUID id) {

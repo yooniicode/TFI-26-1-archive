@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public class PatientRequest {
@@ -21,14 +22,13 @@ public class PatientRequest {
             LocalDate birthDate,
             String phone,
             String region,
-            String workplaceName
+            List<UUID> centerIds
     ) {}
 
     public record Update(
             VisaType visaType,
             String visaNote,
             String phone,
-            String region,
-            String workplaceName
+            String region
     ) {}
 }

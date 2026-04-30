@@ -19,7 +19,6 @@ public class AuthRequest {
             String visaNote,
             String phone,
             String region,
-            String workplaceName,
             InterpreterRole interpreterRole,
             UUID centerId,
             String centerName

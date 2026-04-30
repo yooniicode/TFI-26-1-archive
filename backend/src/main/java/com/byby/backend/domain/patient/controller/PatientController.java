@@ -73,6 +73,28 @@ public class PatientController {
                 Response.success(SuccessCode.OK, patientService.update(id, req, principal)));
     }
 
+    @PostMapping("/{id}/centers/{centerId}")
+    @PreAuthorize("hasRole('admin')")
+    @Operation(summary = "이주민 센터 추가")
+    public ResponseEntity<Response<PatientResponse.Detail>> addCenter(
+            @PathVariable UUID id,
+            @PathVariable UUID centerId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(
+                Response.success(SuccessCode.OK, patientService.addCenter(id, centerId, principal)));
+    }
+
+    @DeleteMapping("/{id}/centers/{centerId}")
+    @PreAuthorize("hasRole('admin')")
+    @Operation(summary = "이주민 센터 제거")
+    public ResponseEntity<Response<PatientResponse.Detail>> removeCenter(
+            @PathVariable UUID id,
+            @PathVariable UUID centerId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(
+                Response.success(SuccessCode.OK, patientService.removeCenter(id, centerId, principal)));
+    }
+
     @GetMapping("/{id}/history")
     @PreAuthorize("hasAnyRole('interpreter', 'admin', 'patient')")
     @Operation(summary = "이주민 상담 이력 조회")

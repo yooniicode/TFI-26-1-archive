@@ -38,9 +38,6 @@ export async function middleware(request: NextRequest) {
     if (user && isLoginPage) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-    if (user && isLandingPage) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
   } catch {
     const { pathname } = request.nextUrl
     const isLoginPage = pathname.startsWith('/login')

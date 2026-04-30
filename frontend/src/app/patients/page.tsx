@@ -19,7 +19,6 @@ interface CreatePatientForm {
   birthDate: string
   phone: string
   region: string
-  workplaceName: string
   visaNote: string
 }
 
@@ -31,7 +30,6 @@ const initialForm: CreatePatientForm = {
   birthDate: '',
   phone: '',
   region: '',
-  workplaceName: '',
   visaNote: '',
 }
 
@@ -80,7 +78,6 @@ export default function PatientsPage() {
         birthDate: form.birthDate || undefined,
         phone: form.phone.trim() || undefined,
         region: form.region.trim() || undefined,
-        workplaceName: form.workplaceName.trim() || undefined,
         visaNote: form.visaNote.trim() || undefined,
       })
       setForm(initialForm)
@@ -201,14 +198,6 @@ export default function PatientsPage() {
                 className="input"
                 value={form.region}
                 onChange={e => setForm(prev => ({ ...prev, region: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="label">사업장</label>
-              <input
-                className="input"
-                value={form.workplaceName}
-                onChange={e => setForm(prev => ({ ...prev, workplaceName: e.target.value }))}
               />
             </div>
             <div>

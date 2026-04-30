@@ -20,6 +20,7 @@ public enum BusinessErrorCode implements Code {
     MATCH_ALREADY_EXISTS(409, "이미 활성화된 매칭이 존재합니다."),
     INTERPRETER_ALREADY_EXISTS(409, "해당 인증 계정의 통번역가가 이미 존재합니다."),
     PATIENT_ALREADY_EXISTS(409, "해당 인증 계정의 이주민 정보가 이미 존재합니다."),
+    PATIENT_CENTER_ALREADY_EXISTS(409, "이미 등록된 센터입니다."),
 
     ACCESS_DENIED_NOT_ASSIGNED(403, "배정된 케이스가 아닙니다."),
     ACCESS_DENIED_NOT_OWNER(403, "본인의 케이스가 아닙니다."),

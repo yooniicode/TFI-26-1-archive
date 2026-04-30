@@ -47,7 +47,6 @@ export default function MyPage() {
 
   const [phone, setPhone] = useState('')
   const [region, setRegion] = useState('')
-  const [workplaceName, setWorkplaceName] = useState('')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [visaNote, setVisaNote] = useState('')
   const [intPhone, setIntPhone] = useState('')
@@ -64,7 +63,6 @@ export default function MyPage() {
     if (patient) {
       setPhone(patient.phone ?? '')
       setRegion(patient.region ?? '')
-      setWorkplaceName(patient.workplaceName ?? '')
       setVisaType(patient.visaType)
       setVisaNote(patient.visaNote ?? '')
     }
@@ -94,7 +92,7 @@ export default function MyPage() {
     mutationFn: () => {
       if (!me?.entityId) return Promise.reject(new Error('프로필 정보를 불러오지 못했습니다.'))
       if (me.role === 'patient') {
-        return patientApi.update(me.entityId, { phone, region, workplaceName, visaType, visaNote })
+        return patientApi.update(me.entityId, { phone, region, visaType, visaNote })
       }
       return interpreterApi.update(me.entityId, { phone: intPhone })
     },
@@ -300,10 +298,6 @@ export default function MyPage() {
                 <div>
                   <label className="label">거주 지역</label>
                   <input className="input" value={region} onChange={e => setRegion(e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">사업장명</label>
-                  <input className="input" value={workplaceName} onChange={e => setWorkplaceName(e.target.value)} />
                 </div>
                 <div>
                   <label className="label">비자 종류</label>

@@ -8,6 +8,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -20,7 +22,7 @@ public class Patient extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    private UUID authUserId; // Supabase Auth user id (PATIENT 역할 로그인용)
+    private UUID authUserId;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -48,13 +50,13 @@ public class Patient extends BaseEntity {
     @Column(length = 100)
     private String region;
 
-    @Column(length = 200)
-    private String workplaceName;
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<PatientCenter> patientCenters = new ArrayList<>();
 
     @Builder
     public Patient(UUID authUserId, String name, Nationality nationality, Gender gender,
                    VisaType visaType, String visaNote, LocalDate birthDate,
-                   String phone, String region, String workplaceName) {
+                   String phone, String region) {
         this.authUserId = authUserId;
         this.name = name;
         this.nationality = nationality;
@@ -64,14 +66,11 @@ public class Patient extends BaseEntity {
         this.birthDate = birthDate;
         this.phone = phone;
         this.region = region;
-        this.workplaceName = workplaceName;
     }
 
-    public void updateInfo(String phone, String region, String workplaceName,
-                           String visaNote, VisaType visaType) {
+    public void updateInfo(String phone, String region, String visaNote, VisaType visaType) {
         if (phone != null) this.phone = phone;
         if (region != null) this.region = region;
-        if (workplaceName != null) this.workplaceName = workplaceName;
         if (visaNote != null) this.visaNote = visaNote;
         if (visaType != null) this.visaType = visaType;
     }

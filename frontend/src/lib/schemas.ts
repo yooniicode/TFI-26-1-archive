@@ -20,6 +20,11 @@ const nullableString = z.string().nullable().optional().transform(v => v ?? unde
 const nullableUuid = z.string().uuid().nullable().optional().transform(v => v ?? undefined)
 const nullableNumber = z.number().nullable().optional().transform(v => v ?? undefined)
 
+export const centerSummarySchema = z.object({
+  id:   z.string().uuid(),
+  name: z.string(),
+})
+
 export const patientSchema = z.object({
   id:            z.string().uuid(),
   name:          z.string(),
@@ -30,7 +35,7 @@ export const patientSchema = z.object({
   birthDate:     nullableString,
   phone:         nullableString,
   region:        nullableString,
-  workplaceName: nullableString,
+  centers:       z.array(centerSummarySchema).optional().default([]),
   accountLinked: z.boolean().optional().default(false),
   createdAt:     z.string(),
   updatedAt:     z.string().optional().default(''),
@@ -72,7 +77,6 @@ export const consultationSchema = z.object({
   patientNationality:  nationalitySchema.nullable().optional().transform(v => v ?? undefined),
   patientGender:       genderSchema.nullable().optional().transform(v => v ?? undefined),
   patientVisaType:     visaTypeSchema.nullable().optional().transform(v => v ?? undefined),
-  patientWorkplaceName: nullableString,
   patientRegion:       nullableString,
   patientPhone:        nullableString,
   interpreterId:       nullableUuid,

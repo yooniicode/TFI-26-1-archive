@@ -51,6 +51,11 @@ export interface PageInfo {
   totalPages: number
 }
 
+export interface CenterSummary {
+  id: string
+  name: string
+}
+
 export interface Patient {
   id: string
   name: string
@@ -61,7 +66,7 @@ export interface Patient {
   birthDate?: string
   phone?: string
   region?: string
-  workplaceName?: string
+  centers: CenterSummary[]
   accountLinked: boolean
   createdAt: string
   updatedAt: string
@@ -98,7 +103,6 @@ export interface Consultation {
   patientNationality?: Nationality
   patientGender?: Gender
   patientVisaType?: VisaType
-  patientWorkplaceName?: string
   patientRegion?: string
   patientPhone?: string
   interpreterId?: string
@@ -222,7 +226,6 @@ export interface RegisterProfileRequest {
   visaNote?: string
   phone?: string
   region?: string
-  workplaceName?: string
   interpreterRole?: InterpreterRole
   centerId?: string
   centerName?: string
