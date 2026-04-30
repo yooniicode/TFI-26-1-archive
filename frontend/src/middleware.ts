@@ -27,19 +27,26 @@ export async function middleware(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    const isLoginPage = request.nextUrl.pathname.startsWith('/login')
-    const isAuthRoute = request.nextUrl.pathname.startsWith('/auth/')
+    const { pathname } = request.nextUrl
+    const isLoginPage = pathname.startsWith('/login')
+    const isAuthRoute = pathname.startsWith('/auth/')
+    const isLandingPage = pathname === '/'
 
-    if (!user && !isLoginPage && !isAuthRoute) {
+    if (!user && !isLoginPage && !isAuthRoute && !isLandingPage) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
     if (user && isLoginPage) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+    if (user && isLandingPage) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   } catch {
-    const isLoginPage = request.nextUrl.pathname.startsWith('/login')
-    const isAuthRoute = request.nextUrl.pathname.startsWith('/auth/')
-    if (!isLoginPage && !isAuthRoute) {
+    const { pathname } = request.nextUrl
+    const isLoginPage = pathname.startsWith('/login')
+    const isAuthRoute = pathname.startsWith('/auth/')
+    const isLandingPage = pathname === '/'
+    if (!isLoginPage && !isAuthRoute && !isLandingPage) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
