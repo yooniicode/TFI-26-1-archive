@@ -13,6 +13,19 @@ import { useTranslation } from '@/lib/i18n/I18nContext'
 import Spinner from '@/components/ui/Spinner'
 import PasswordInput from '@/components/ui/PasswordInput'
 
+const INTERPRETER_LANGUAGE_OPTIONS = [
+  '한국어',
+  '베트남어',
+  '영어',
+  '중국어',
+  '몽골어',
+  '네팔어',
+  '러시아어',
+  '태국어',
+  '캄보디아어',
+  '미얀마어',
+]
+
 export default function MyPage() {
   const queryClient = useQueryClient()
   const { t } = useTranslation()
@@ -55,6 +68,8 @@ export default function MyPage() {
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
   const [visaNote, setVisaNote] = useState('')
   const [intPhone, setIntPhone] = useState('')
+  const [interpreterLanguages, setInterpreterLanguages] = useState<string[]>([])
+  const [availabilityNote, setAvailabilityNote] = useState('')
   const [centerId, setCenterId] = useState('')
   const [centerName, setCenterName] = useState('')
   const [centerAddress, setCenterAddress] = useState('')
@@ -78,6 +93,8 @@ export default function MyPage() {
     if (interpreter) {
       setName(interpreter.name ?? '')
       setIntPhone(interpreter.phone ?? '')
+      setInterpreterLanguages(interpreter.languages ?? [])
+      setAvailabilityNote(interpreter.availabilityNote ?? '')
     }
   }, [interpreter])
 
@@ -103,7 +120,12 @@ export default function MyPage() {
       if (me.role === 'patient') {
         return patientApi.update(me.entityId, { name: name.trim(), phone, region, visaType, visaNote })
       }
-      return interpreterApi.update(me.entityId, { name: name.trim(), phone: intPhone })
+      return interpreterApi.update(me.entityId, {
+        name: name.trim(),
+        phone: intPhone,
+        languages: interpreterLanguages,
+        availabilityNote: availabilityNote.trim(),
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.patients.detail(me?.entityId ?? '') })
@@ -198,16 +220,16 @@ export default function MyPage() {
     setConfirmPassword('')
   }
 
-    async function handleDeleteAccount() {
-    if (!confirm('���� ȸ�� Ż���Ͻðڽ��ϱ�? ����ų �� �����ϴ�.')) return;
+  async function handleDeleteAccount() {
+    if (!confirm(t.mypage.delete_confirm)) return
     try {
-      await authApi.deleteAccount();
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      window.location.href = '/login';
+      await authApi.deleteAccount()
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      window.location.href = '/login'
     } catch (e) {
-      console.error(e);
-      alert('Ż�� ó�� �� ������ �߻��߽��ϴ�.');
+      console.error(e)
+      alert(t.mypage.delete_error)
     }
   }
 
@@ -368,11 +390,48 @@ export default function MyPage() {
             )}
 
             {me?.role === 'interpreter' && (
-              <div>
-                <label className="label">{t.mypage.phone}</label>
-                <input className="input" value={intPhone} onChange={e => setIntPhone(e.target.value)} placeholder="010-0000-0000" />
-                <p className="text-xs text-gray-500 mt-2">{t.mypage.interpreter_role_note}</p>
-              </div>
+              <>
+                <div>
+                  <label className="label">{t.mypage.phone}</label>
+                  <input className="input" value={intPhone} onChange={e => setIntPhone(e.target.value)} placeholder="010-0000-0000" />
+                  <p className="text-xs text-gray-500 mt-2">{t.mypage.interpreter_role_note}</p>
+                </div>
+                <div>
+                  <label className="label">{t.mypage.languages}</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {INTERPRETER_LANGUAGE_OPTIONS.map(language => {
+                      const selected = interpreterLanguages.includes(language)
+                      return (
+                        <button
+                          key={language}
+                          type="button"
+                          onClick={() => {
+                            setInterpreterLanguages(prev => selected
+                              ? prev.filter(item => item !== language)
+                              : [...prev, language])
+                          }}
+                          className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                            selected
+                              ? 'border-primary-600 bg-primary-50 text-primary-700'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          {language}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="label">{t.mypage.availability}</label>
+                  <textarea
+                    className="input min-h-20 resize-none"
+                    value={availabilityNote}
+                    onChange={e => setAvailabilityNote(e.target.value)}
+                    placeholder={t.mypage.availability_placeholder}
+                  />
+                </div>
+              </>
             )}
 
             {saveError && <p className="text-red-500 text-xs">{saveError.message}</p>}
@@ -435,7 +494,7 @@ export default function MyPage() {
             onClick={handleDeleteAccount}
             className="w-full text-xs text-gray-400 hover:text-gray-500 py-2 border-t mt-2"
           >
-            ȸ�� Ż��
+            {t.mypage.delete_account}
           </button>
         </div>
       </div>

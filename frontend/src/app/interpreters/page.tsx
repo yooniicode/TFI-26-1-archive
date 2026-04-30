@@ -73,6 +73,9 @@ export default function InterpretersPage() {
                     <p className="text-xs text-gray-400 mt-0.5">
                       {labels.interpreterRole[i.role]} · {i.languages.join(', ') || t.interpreter.no_language}
                     </p>
+                    {i.availabilityNote && (
+                      <p className="text-xs text-gray-400">{t.interpreter.availability}: {i.availabilityNote}</p>
+                    )}
                     {i.centerName && <p className="text-xs text-gray-400">{t.interpreter.work_center}: {i.centerName}</p>}
                     {i.phone && <p className="text-xs text-gray-400">{i.phone}</p>}
                   </div>

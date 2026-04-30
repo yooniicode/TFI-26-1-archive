@@ -52,6 +52,11 @@ export default function MatchingPage() {
     await load()
   }
 
+  function interpreterOptionLabel(interpreter: Interpreter) {
+    const detail = [interpreter.languages.join(', '), interpreter.availabilityNote].filter(Boolean).join(' · ')
+    return detail ? `${interpreter.name} (${detail})` : interpreter.name
+  }
+
   if (loading) return <AppShell><Spinner /></AppShell>
 
   return (
@@ -74,7 +79,7 @@ export default function MatchingPage() {
             onChange={e => setForm(f => ({ ...f, interpreterId: e.target.value }))} required>
             <option value="">{t.common.select}</option>
             {interpreters.map(i => (
-              <option key={i.id} value={i.id}>{i.name} ({i.languages.join(', ')})</option>
+              <option key={i.id} value={i.id}>{interpreterOptionLabel(i)}</option>
             ))}
           </select>
         </div>

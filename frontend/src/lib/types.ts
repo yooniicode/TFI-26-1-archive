@@ -80,6 +80,7 @@ export interface Interpreter {
   centerId?: string | null
   centerName?: string | null
   languages: string[]
+  availabilityNote?: string | null
   active: boolean
   createdAt: string
 }
@@ -92,7 +93,7 @@ export interface Center {
   active: boolean
 }
 
-export interface Hospital { id: string; name: string; address?: string; phone?: string }
+export interface Hospital { id: string; name: string; address?: string | null; phone?: string | null }
 
 export interface Consultation {
   id: string
@@ -234,6 +235,8 @@ export interface RegisterProfileRequest {
   interpreterRole?: InterpreterRole
   centerId?: string
   centerName?: string
+  languages?: string[]
+  availabilityNote?: string
 }
 
 export interface AdminProfile {

@@ -48,7 +48,8 @@ export const interpreterSchema = z.object({
   role:      interpreterRoleSchema,
   centerId:  z.string().uuid().nullable().optional(),
   centerName: z.string().nullable().optional(),
-  languages: z.array(z.string()),
+  languages: z.array(z.string()).optional().default([]),
+  availabilityNote: z.string().nullable().optional(),
   active:    z.boolean(),
   createdAt: z.string(),
 })
@@ -64,8 +65,8 @@ export const centerSchema = z.object({
 export const hospitalSchema = z.object({
   id:      z.string().uuid(),
   name:    z.string(),
-  address: z.string().optional(),
-  phone:   z.string().optional(),
+  address: z.string().nullable().optional(),
+  phone:   z.string().nullable().optional(),
 })
 
 export const consultationSchema = z.object({

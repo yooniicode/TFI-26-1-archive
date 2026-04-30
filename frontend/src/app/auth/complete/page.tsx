@@ -12,6 +12,34 @@ import { useTranslation } from '@/lib/i18n/I18nContext'
 import PasswordInput from '@/components/ui/PasswordInput'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
+type ProfileRole = Extract<UserRole, 'interpreter' | 'patient'>
+
+const INTERPRETER_LANGUAGE_OPTIONS = [
+  '한국어',
+  '베트남어',
+  '영어',
+  '중국어',
+  '몽골어',
+  '네팔어',
+  '러시아어',
+  '태국어',
+  '캄보디아어',
+  '미얀마어',
+]
+
+function normalizeLanguages(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map(item => item.trim())
+      .filter(Boolean)
+  }
+  if (typeof value === 'string') {
+    return value.split(',').map(item => item.trim()).filter(Boolean)
+  }
+  return []
+}
+
 export default function AuthCompletePage() {
   const router = useRouter()
   const { t } = useTranslation()
@@ -20,10 +48,12 @@ export default function AuthCompletePage() {
   const [needsProfile, setNeedsProfile] = useState(false)
   const [pendingRequest, setPendingRequest] = useState<RequestedMemberRole | null>(null)
   const [isOtpUser, setIsOtpUser] = useState(false)
-  const [role, setRole] = useState<Extract<UserRole, 'interpreter' | 'patient'>>('patient')
+  const [role, setRole] = useState<ProfileRole | null>(null)
 
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [languages, setLanguages] = useState<string[]>([])
+  const [availabilityNote, setAvailabilityNote] = useState('')
   const [nationality, setNationality] = useState<Nationality>('OTHER')
   const [gender, setGender] = useState<Gender>('OTHER')
   const [visaType, setVisaType] = useState<VisaType>('OTHER')
@@ -53,8 +83,12 @@ export default function AuthCompletePage() {
 
       const metadata = session.user.user_metadata ?? {}
       const requestedMemberRole = getRequestedMemberRole(metadata)
+      if (requestedMemberRole?.role === 'interpreter') setRole('interpreter')
       if (typeof metadata.name === 'string') setName(metadata.name)
       if (typeof metadata.phone === 'string') setPhone(metadata.phone)
+      setLanguages(normalizeLanguages(metadata.languages))
+      if (typeof metadata.availability_note === 'string') setAvailabilityNote(metadata.availability_note)
+      if (typeof metadata.availabilityNote === 'string') setAvailabilityNote(metadata.availabilityNote)
       if (typeof metadata.requested_center_id === 'string') setBootstrapCenterId(metadata.requested_center_id)
       if (typeof metadata.center_id === 'string') setBootstrapCenterId(metadata.center_id)
       if (typeof metadata.requested_center_name === 'string') setBootstrapCenterName(metadata.requested_center_name)
@@ -85,7 +119,7 @@ export default function AuthCompletePage() {
             setNeedsProfile(false)
             return
           }
-          if (res.payload.role === 'interpreter') setRole('interpreter')
+          setRole(res.payload.role === 'interpreter' ? 'interpreter' : 'patient')
           if (res.payload?.entityId) {
             router.replace('/dashboard')
           } else {
@@ -102,10 +136,15 @@ export default function AuthCompletePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!role) { setError(t.auth_complete.err_profile_save); return }
     if (!name.trim()) { setError(t.auth_complete.err_name); return }
     if (role === 'patient' && !phone.trim()) { setError(t.auth_complete.err_phone); return }
     if (role === 'interpreter' && !bootstrapCenterId && !bootstrapCenterName.trim()) {
       setError(t.auth_complete.err_center)
+      return
+    }
+    if (role === 'interpreter' && languages.length === 0) {
+      setError(t.auth_complete.err_languages)
       return
     }
     if (isOtpUser && newPassword) {
@@ -125,6 +164,8 @@ export default function AuthCompletePage() {
         interpreterRole: role === 'interpreter' ? 'FREELANCER' : undefined,
         centerId: role === 'interpreter' ? bootstrapCenterId || undefined : undefined,
         centerName: role === 'interpreter' ? bootstrapCenterName.trim() || undefined : undefined,
+        languages: role === 'interpreter' ? languages : undefined,
+        availabilityNote: role === 'interpreter' ? availabilityNote.trim() || undefined : undefined,
       })
       if (isOtpUser && newPassword) {
         await createClient().auth.updateUser({ password: newPassword })
@@ -233,7 +274,7 @@ export default function AuthCompletePage() {
     )
   }
 
-  if (!needsProfile) return null
+  if (!needsProfile || !role) return null
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -285,6 +326,46 @@ export default function AuthCompletePage() {
                 }}
               />
             </div>
+          )}
+
+          {role === 'interpreter' && (
+            <>
+              <div>
+                <label className="label">{t.auth_complete.languages}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {INTERPRETER_LANGUAGE_OPTIONS.map(language => {
+                    const selected = languages.includes(language)
+                    return (
+                      <button
+                        key={language}
+                        type="button"
+                        onClick={() => {
+                          setLanguages(prev => selected
+                            ? prev.filter(item => item !== language)
+                            : [...prev, language])
+                        }}
+                        className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                          selected
+                            ? 'border-primary-600 bg-primary-50 text-primary-700'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {language}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="label">{t.auth_complete.availability}</label>
+                <textarea
+                  className="input min-h-20 resize-none"
+                  value={availabilityNote}
+                  onChange={e => setAvailabilityNote(e.target.value)}
+                  placeholder={t.auth_complete.availability_placeholder}
+                />
+              </div>
+            </>
           )}
 
           {role === 'patient' && (
