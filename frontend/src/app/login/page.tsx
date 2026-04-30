@@ -143,7 +143,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="card max-w-sm w-full">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-primary-700">TFI</h1>
+          <h1 className="text-2xl font-bold text-primary-700">LinkUs</h1>
           <p className="text-sm text-gray-500 mt-1">통번역 지원 플랫폼</p>
         </div>
 

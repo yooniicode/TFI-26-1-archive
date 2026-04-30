@@ -52,7 +52,7 @@ export default async function LandingPage() {
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <span className="text-xl font-bold text-primary-700">TFI</span>
+        <span className="text-xl font-bold text-primary-700">LinkUs</span>
         <Link href="/login" className="btn-primary text-sm px-4 py-2">
           로그인
         </Link>
@@ -106,7 +106,7 @@ export default async function LandingPage() {
               참여 센터
             </h2>
             <p className="text-center text-sm text-gray-500 mb-10">
-              TFI를 도입한 이주민 지원 센터입니다.
+              LinkUs를 도입한 이주민 지원 센터입니다.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {centers.map(center => (
@@ -153,7 +153,7 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
-        © 2026 TFI 통번역 지원 플랫폼
+        © 2026 LinkUs 통번역 지원 플랫폼
       </footer>
     </div>
   )

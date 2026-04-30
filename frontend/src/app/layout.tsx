@@ -3,10 +3,10 @@ import './globals.css'
 import QueryProvider from '@/components/QueryProvider'
 
 export const metadata: Metadata = {
-  title: 'TFI 통번역 지원 플랫폼',
+  title: 'LinkUs 통번역 지원 플랫폼',
   description: '이주민 의료 통번역 지원 시스템',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'TFI' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'LinkUs' },
 }
 
 export const viewport: Viewport = {

@@ -1,6 +1,6 @@
 {
-  "name": "TFI 통번역 지원 플랫폼",
-  "short_name": "TFI",
+  "name": "LinkUs 통번역 지원 플랫폼",
+  "short_name": "LinkUs",
   "description": "이주민 의료 통번역 지원 시스템",
   "start_url": "/",
   "display": "standalone",
