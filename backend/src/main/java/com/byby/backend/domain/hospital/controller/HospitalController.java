@@ -24,7 +24,7 @@ public class HospitalController {
     private final HospitalService hospitalService;
 
     @PostMapping
-    @PreAuthorize("hasRole('admin')")
+    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
     public ResponseEntity<Response<HospitalResponse.Summary>> create(
             @Valid @RequestBody HospitalRequest.Create req) {
         return ResponseEntity.status(201)

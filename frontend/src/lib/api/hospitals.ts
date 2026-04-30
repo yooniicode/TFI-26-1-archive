@@ -3,7 +3,7 @@ import { schemas } from '../schemas'
 
 export const hospitalApi = {
   search: (name?: string, page = 0) =>
-    get(`/hospitals?${name ? `name=${name}&` : ''}page=${page}&size=20`, schemas.hospitals),
+    get(`/hospitals?${name ? `name=${encodeURIComponent(name)}&` : ''}page=${page}&size=20`, schemas.hospitals),
   get:    (id: string) => get(`/hospitals/${id}`, schemas.hospital),
-  create: (body: unknown) => post('/hospitals', body, schemas.hospital),
+  create: (body: { name: string; address?: string; phone?: string }) => post('/hospitals', body, schemas.hospital),
 }

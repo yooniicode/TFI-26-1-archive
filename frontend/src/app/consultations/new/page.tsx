@@ -20,7 +20,14 @@ export default function NewConsultationPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [hospitals, setHospitals] = useState<Hospital[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [creatingHospital, setCreatingHospital] = useState(false)
+  const [showHospitalForm, setShowHospitalForm] = useState(false)
   const [error, setError] = useState('')
+  const [newHospital, setNewHospital] = useState({
+    name: '',
+    address: '',
+    phone: '',
+  })
 
   const today = new Date().toISOString().split('T')[0]
   const [form, setForm] = useState({
@@ -60,6 +67,33 @@ export default function NewConsultationPage() {
   )
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const setHospitalField = (k: keyof typeof newHospital, v: string) =>
+    setNewHospital(f => ({ ...f, [k]: v }))
+
+  async function handleCreateHospital() {
+    if (!newHospital.name.trim()) {
+      setError(t.consultation.err_hospital_name)
+      return
+    }
+    setCreatingHospital(true)
+    setError('')
+    try {
+      const res = await hospitalApi.create({
+        name: newHospital.name.trim(),
+        address: newHospital.address.trim() || undefined,
+        phone: newHospital.phone.trim() || undefined,
+      })
+      const hospital = res.payload as Hospital
+      setHospitals(prev => [hospital, ...prev.filter(item => item.id !== hospital.id)])
+      set('hospitalId', hospital.id)
+      setNewHospital({ name: '', address: '', phone: '' })
+      setShowHospitalForm(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.consultation.err_hospital_create)
+    } finally {
+      setCreatingHospital(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -133,7 +167,16 @@ export default function NewConsultationPage() {
           )}
 
           <div>
-            <label className="label">{t.consultation.hospital}</label>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <label className="label mb-0">{t.consultation.hospital}</label>
+              <button
+                type="button"
+                className="text-xs font-medium text-primary-600 hover:underline"
+                onClick={() => setShowHospitalForm(prev => !prev)}
+              >
+                {showHospitalForm ? t.consultation.hospital_cancel_add : t.consultation.hospital_add}
+              </button>
+            </div>
             <select
               className="input"
               value={form.hospitalId}
@@ -144,6 +187,43 @@ export default function NewConsultationPage() {
                 <option key={h.id} value={h.id}>{h.name}</option>
               ))}
             </select>
+            {showHospitalForm && (
+              <div className="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <div>
+                  <label className="label">{t.consultation.hospital_name}</label>
+                  <input
+                    className="input bg-white"
+                    value={newHospital.name}
+                    onChange={e => setHospitalField('name', e.target.value)}
+                    placeholder={t.consultation.hospital_name_placeholder}
+                  />
+                </div>
+                <div>
+                  <label className="label">{t.consultation.hospital_address}</label>
+                  <input
+                    className="input bg-white"
+                    value={newHospital.address}
+                    onChange={e => setHospitalField('address', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">{t.consultation.hospital_phone}</label>
+                  <input
+                    className="input bg-white"
+                    value={newHospital.phone}
+                    onChange={e => setHospitalField('phone', e.target.value)}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary w-full"
+                  disabled={creatingHospital}
+                  onClick={handleCreateHospital}
+                >
+                  {creatingHospital ? t.consultation.hospital_creating : t.consultation.hospital_create}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2">
