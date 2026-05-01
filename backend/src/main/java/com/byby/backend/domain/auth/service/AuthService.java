@@ -15,6 +15,8 @@ import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.auth.dto.AuthRequest;
 import com.byby.backend.domain.patient.entity.Patient;
+import com.byby.backend.domain.patient.entity.PatientCenter;
+import com.byby.backend.domain.patient.repository.PatientCenterRepository;
 import com.byby.backend.domain.patient.repository.PatientRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +49,7 @@ import java.util.stream.Collectors;
 public class AuthService {
 
     private final PatientRepository patientRepository;
+    private final PatientCenterRepository patientCenterRepository;
     private final InterpreterRepository interpreterRepository;
     private final AdminProfileRepository adminProfileRepository;
     private final AdminService adminService;
@@ -324,7 +327,7 @@ public class AuthService {
         Optional<Interpreter> interpreter = interpreterRepository.findByAuthUserId(authUserId);
         Interpreter saved = interpreter.orElse(null);
         if (req.role() == UserRole.interpreter) {
-            InterpreterRole interpreterRole = req.interpreterRole() != null ? req.interpreterRole() : InterpreterRole.FREELANCER;
+            InterpreterRole interpreterRole = req.interpreterRole() != null ? req.interpreterRole() : InterpreterRole.ACTIVIST;
             saved = upsertInterpreterProfile(authUserId, trimToNull(req.name()), trimToNull(req.phone()), interpreterRole, adminCenter, saved);
         } else if (saved != null) {
             saved.updateAdminInfo(trimToNull(req.name()), trimToNull(req.phone()), InterpreterRole.STAFF);
@@ -646,9 +649,15 @@ public class AuthService {
 
     private void registerPatientProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {
         if (patientRepository.existsByAuthUserId(principal.getAuthUserId())) return;
+        if (req.centerId() == null) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "centerId is required for patient");
+        }
+        Center center = centerService.find(req.centerId());
         Optional<Patient> existingPatient = findClaimablePatient(req);
         if (existingPatient.isPresent()) {
-            existingPatient.get().linkAuthUser(principal.getAuthUserId());
+            Patient patient = existingPatient.get();
+            patient.linkAuthUser(principal.getAuthUserId());
+            addPatientCenterIfMissing(patient, center);
             return;
         }
         if (req.nationality() == null || req.gender() == null || req.visaType() == null) {
@@ -665,7 +674,17 @@ public class AuthService {
                 .phone(req.phone())
                 .region(req.region())
                 .build();
-        patientRepository.save(patient);
+        Patient saved = patientRepository.save(patient);
+        addPatientCenterIfMissing(saved, center);
+    }
+
+    private void addPatientCenterIfMissing(Patient patient, Center center) {
+        if (!patientCenterRepository.existsByPatientIdAndCenterId(patient.getId(), center.getId())) {
+            patientCenterRepository.save(PatientCenter.builder()
+                    .patient(patient)
+                    .center(center)
+                    .build());
+        }
     }
 
     private Optional<Patient> findClaimablePatient(AuthRequest.RegisterProfile req) {

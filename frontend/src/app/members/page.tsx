@@ -12,19 +12,19 @@ import type { Member, UpdateMemberRoleRequest } from '@/lib/types'
 import { useMe } from '@/hooks/useMe'
 import { useTranslation } from '@/lib/i18n/I18nContext'
 
-type MemberRoleOption = 'admin' | 'activist' | 'freelancer'
+type MemberRoleOption = 'admin' | 'activist'
 
 export default function MembersPage() {
   const queryClient = useQueryClient()
   const { t } = useTranslation()
   const { data: me, isLoading: meLoading } = useMe()
   const [editing, setEditing] = useState<Record<string, UpdateMemberRoleRequest>>({})
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null)
   const needsAdminCenter = me?.role === 'admin' && !me.centerId && !me.centerName
 
   const roleLabels: Record<MemberRoleOption, string> = {
     admin: t.member.role_admin,
     activist: t.member.role_activist,
-    freelancer: t.member.role_freelancer,
   }
 
   const { data: members = [], isLoading } = useQuery({
@@ -33,14 +33,19 @@ export default function MembersPage() {
     enabled: !meLoading && !!me && !needsAdminCenter,
   })
 
-  const { mutate: saveRole, isPending, error } = useMutation({
+  const { mutate: saveRole, error } = useMutation({
     mutationFn: ({ authUserId, body }: { authUserId: string; body: UpdateMemberRoleRequest }) =>
       authApi.updateMemberRole(authUserId, body),
-    onSuccess: () => {
-      setEditing({})
+    onSuccess: (_data, variables) => {
+      setEditing(prev => {
+        const next = { ...prev }
+        delete next[variables.authUserId]
+        return next
+      })
       queryClient.invalidateQueries({ queryKey: queryKeys.members })
       queryClient.invalidateQueries({ queryKey: queryKeys.me })
     },
+    onSettled: () => setSavingMemberId(null),
   })
 
   function draftFor(member: Member): UpdateMemberRoleRequest {
@@ -54,12 +59,11 @@ export default function MembersPage() {
 
   function roleValue(draft: UpdateMemberRoleRequest): MemberRoleOption {
     if (draft.role === 'admin') return 'admin'
-    return draft.interpreterRole === 'FREELANCER' ? 'freelancer' : 'activist'
+    return 'activist'
   }
 
   function rolePatch(value: MemberRoleOption): Pick<UpdateMemberRoleRequest, 'role' | 'interpreterRole'> {
     if (value === 'admin') return { role: 'admin', interpreterRole: 'STAFF' }
-    if (value === 'freelancer') return { role: 'interpreter', interpreterRole: 'FREELANCER' }
     return { role: 'interpreter', interpreterRole: 'ACTIVIST' }
   }
 
@@ -90,6 +94,7 @@ export default function MembersPage() {
           <div className="space-y-3">
             {members.map(member => {
               const draft = draftFor(member)
+              const rowSaving = savingMemberId === member.authUserId
               return (
                 <div key={member.authUserId} className="card space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -140,10 +145,13 @@ export default function MembersPage() {
                   <button
                     type="button"
                     className="btn-primary w-full"
-                    disabled={isPending || me?.authUserId === member.authUserId}
-                    onClick={() => saveRole({ authUserId: member.authUserId, body: draft })}
+                    disabled={rowSaving || me?.authUserId === member.authUserId}
+                    onClick={() => {
+                      setSavingMemberId(member.authUserId)
+                      saveRole({ authUserId: member.authUserId, body: draft })
+                    }}
                   >
-                    {isPending ? t.common.saving : t.member.role_save}
+                    {rowSaving ? t.common.saving : t.member.role_save}
                   </button>
                 </div>
               )

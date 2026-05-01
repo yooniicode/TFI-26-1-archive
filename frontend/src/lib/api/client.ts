@@ -11,6 +11,7 @@ export class ApiError extends Error {
     super(message)
     this.name = 'ApiError'
   }
+  get isBadRequest()   { return this.status === 400 }
   get isUnauthorized() { return this.status === 401 }
   get isForbidden()    { return this.status === 403 }
   get isNotFound()     { return this.status === 404 }
@@ -44,12 +45,32 @@ instance.interceptors.response.use(
         }
       }
 
-      const message = err.response?.data?.message ?? err.message
+      const message = extractErrorMessage(err.response?.data) ?? err.message
       throw new ApiError(message, status)
     }
     throw err
   },
 )
+
+function extractErrorMessage(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined
+  const body = data as Record<string, unknown>
+  if (typeof body.message === 'string' && body.message.trim()) return body.message
+  if (typeof body.error === 'string' && body.error.trim()) return body.error
+  if (Array.isArray(body.errors)) {
+    const messages = body.errors
+      .map(item => {
+        if (typeof item === 'string') return item
+        if (item && typeof item === 'object' && 'message' in item) {
+          return String((item as { message?: unknown }).message ?? '')
+        }
+        return ''
+      })
+      .filter(Boolean)
+    if (messages.length > 0) return messages.join('\n')
+  }
+  return undefined
+}
 
 const wrapperSchema = z.object({
   statusCode: z.number(),
@@ -73,14 +94,20 @@ async function request<T>(
   const res = await instance.request({ method, url: path, data: options?.data })
 
   const wrapper = wrapperSchema.safeParse(res.data)
-  if (!wrapper.success) throw new ApiError('잘못된 응답 형식', res.status)
+  if (!wrapper.success) throw new ApiError('서버 응답 형식이 올바르지 않습니다.', res.status)
   if (!wrapper.data.isSuccess) throw new ApiError(wrapper.data.message, res.status)
 
   const payload = options?.schema
-    ? options.schema.parse(wrapper.data.payload)
+    ? parsePayload(options.schema, wrapper.data.payload, res.status)
     : wrapper.data.payload as T
 
   return { ...wrapper.data, payload }
+}
+
+function parsePayload<T>(schema: z.ZodType<T>, payload: unknown, status: number): T {
+  const parsed = schema.safeParse(payload)
+  if (!parsed.success) throw new ApiError('서버 응답 데이터 형식이 올바르지 않습니다.', status)
+  return parsed.data
 }
 
 export const get   = <T>(path: string, schema?: z.ZodType<T>) =>

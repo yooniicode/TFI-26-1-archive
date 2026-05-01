@@ -5,6 +5,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   if (pathname.startsWith('/api/')) {
     console.log(`[proxy] ${request.method} ${pathname}`)
+    return NextResponse.next({ request })
   }
 
   let response = NextResponse.next({ request })

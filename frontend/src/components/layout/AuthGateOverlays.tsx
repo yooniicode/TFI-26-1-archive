@@ -16,7 +16,6 @@ interface AuthGateOverlaysProps {
 
 const requestedRoleLabel = (request: RequestedMemberRole) => {
   if (request.role === 'admin') return '센터 직원'
-  if (request.interpreterRole === 'FREELANCER') return '프리랜서'
   if (request.interpreterRole === 'STAFF') return '센터 직원'
   return '통번역가'
 }

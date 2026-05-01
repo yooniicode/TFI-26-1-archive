@@ -12,6 +12,7 @@ export type ConsultationMethod = 'VISIT' | 'PHONE' | 'VIDEO' | 'OTHER'
 export type ProcessingType = 'INTERPRETATION' | 'TRANSLATION' | 'COUNSELING' | 'OTHER'
 export type InterpreterRole = 'ACTIVIST' | 'FREELANCER' | 'STAFF'
 export type ScriptType = 'GENERAL' | 'EMERGENCY'
+export type AnnouncementCategory = 'NOTICE' | 'POLICY' | 'RESOURCE'
 
 export const NATIONALITY_LABEL: Record<Nationality, string> = {
   VIETNAM: '베트남', CHINA: '중국', CAMBODIA: '캄보디아', MYANMAR: '미얀마',
@@ -81,6 +82,7 @@ export interface Interpreter {
   centerName?: string | null
   languages: string[]
   availabilityNote?: string | null
+  monthlyWorkHours?: number
   active: boolean
   createdAt: string
 }
@@ -139,6 +141,8 @@ export interface Consultation {
 export interface PatientReport {
   id: string
   consultationDate: string
+  interpreterId?: string
+  interpreterName?: string
   hospitalName?: string
   department?: string
   doctorName?: string
@@ -282,4 +286,56 @@ export interface UpsertCenterPatientMemoRequest {
   publicMemo?: string
   privateMemo?: string
   interpreterVisible: boolean
+}
+
+export interface Announcement {
+  id: string
+  centerId: string
+  centerName: string
+  authorAuthUserId: string
+  category: AnnouncementCategory
+  title: string
+  content: string
+  linkUrl?: string | null
+  pinned: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpsertAnnouncementRequest {
+  category: AnnouncementCategory
+  title: string
+  content: string
+  linkUrl?: string
+  pinned: boolean
+}
+
+export interface ChatRoomMember {
+  authUserId: string
+  memberName?: string | null
+  role: 'admin' | 'interpreter' | 'patient'
+  lastReadAt: string
+}
+
+export interface ChatRoom {
+  id: string
+  name?: string | null
+  lastMessage?: string | null
+  lastMessageAt?: string | null
+  lastMessageSenderName?: string | null
+  unreadCount: number
+  members: ChatRoomMember[]
+}
+
+export interface ChatMessage {
+  id: string
+  roomId: string
+  senderAuthUserId: string
+  senderName?: string | null
+  content: string
+  createdAt: string
+}
+
+export interface SendMessageRequest {
+  content: string
 }

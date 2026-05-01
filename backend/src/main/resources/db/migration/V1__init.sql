@@ -167,6 +167,22 @@ CREATE TABLE center_patient_memo (
 CREATE INDEX idx_center_patient_memo_patient_id ON center_patient_memo(patient_id);
 CREATE INDEX idx_center_patient_memo_admin_id ON center_patient_memo(admin_auth_user_id);
 
+-- Center announcements shown in the migrant home feed
+CREATE TABLE center_announcement (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    center_id           UUID         NOT NULL REFERENCES center(id),
+    author_auth_user_id UUID         NOT NULL,
+    category            VARCHAR(30)  NOT NULL,
+    title               VARCHAR(120) NOT NULL,
+    content             TEXT         NOT NULL,
+    link_url            VARCHAR(500),
+    pinned              BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at          TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_center_announcement_center ON center_announcement(center_id, pinned DESC, created_at DESC);
+
 -- 통번역가-이주민 매칭 (PatientMatch)
 CREATE TABLE patient_match (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -197,6 +213,73 @@ CREATE TABLE medical_script (
 
 CREATE INDEX idx_medical_script_patient_id ON medical_script(patient_id);
 
+-- ─── 채팅 ─────────────────────────────────────────────────────
+-- 채팅방
+CREATE TABLE chat_room (
+    id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       VARCHAR(100),
+    created_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- 채팅방 참여자
+CREATE TABLE chat_room_member (
+    room_id      UUID        NOT NULL REFERENCES chat_room(id) ON DELETE CASCADE,
+    auth_user_id UUID        NOT NULL,
+    member_name  VARCHAR(100),
+    role         VARCHAR(20) NOT NULL,
+    last_read_at TIMESTAMP   NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (room_id, auth_user_id)
+);
+
+CREATE INDEX idx_chat_room_member_user ON chat_room_member(auth_user_id);
+
+-- 채팅 메시지
+CREATE TABLE chat_message (
+    id                  UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id             UUID      NOT NULL REFERENCES chat_room(id) ON DELETE CASCADE,
+    sender_auth_user_id UUID      NOT NULL,
+    sender_name         VARCHAR(100),
+    content             TEXT      NOT NULL,
+    created_at          TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_message_room ON chat_message(room_id, created_at);
+
+-- Supabase Realtime: chat_message 테이블 구독 허용
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE chat_message;
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END;
+$$;
+
+-- RLS (Supabase Realtime이 auth.uid()로 필터링)
+ALTER TABLE chat_room        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_room_member ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_message     ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "chat_room_select_member" ON chat_room
+    FOR SELECT USING (
+        EXISTS (SELECT 1 FROM chat_room_member m
+                WHERE m.room_id = chat_room.id AND m.auth_user_id = auth.uid())
+    );
+
+CREATE POLICY "chat_room_member_select" ON chat_room_member
+    FOR SELECT USING (
+        EXISTS (SELECT 1 FROM chat_room_member me
+                WHERE me.room_id = chat_room_member.room_id AND me.auth_user_id = auth.uid())
+    );
+
+CREATE POLICY "chat_message_select_member" ON chat_message
+    FOR SELECT USING (
+        EXISTS (SELECT 1 FROM chat_room_member m
+                WHERE m.room_id = chat_message.room_id AND m.auth_user_id = auth.uid())
+    );
+
 -- updated_at 자동 갱신 트리거 함수
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
@@ -212,8 +295,8 @@ DECLARE
     t TEXT;
 BEGIN
     FOREACH t IN ARRAY ARRAY['patient','center','interpreter','admin_profile','admin_work_log',
-                              'hospital','consultation','handover','center_patient_memo',
-                              'patient_match','medical_script']
+                              'hospital','consultation','handover','center_patient_memo','center_announcement',
+                              'patient_match','medical_script','chat_room']
     LOOP
         EXECUTE format(
             'CREATE TRIGGER trg_%s_updated_at

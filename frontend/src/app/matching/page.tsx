@@ -30,8 +30,8 @@ export default function MatchingPage() {
     }
     return Promise.all([
       matchApi.list(),
-      patientApi.list(),
-      interpreterApi.list(),
+      patientApi.list(0, undefined, 200),
+      interpreterApi.list(0, undefined, undefined, 200),
     ]).then(([mRes, pRes, iRes]) => {
       setMatches(mRes.payload ?? [])
       setPatients(pRes.payload ?? [])

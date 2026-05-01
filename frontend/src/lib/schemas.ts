@@ -14,6 +14,7 @@ export const processingTypeSchema  = z.enum(['INTERPRETATION','TRANSLATION','COU
 export const interpreterRoleSchema = z.enum(['ACTIVIST','FREELANCER','STAFF'])
 export const scriptTypeSchema      = z.enum(['GENERAL','EMERGENCY'])
 export const userRoleSchema        = z.enum(['admin','interpreter','patient'])
+export const announcementCategorySchema = z.enum(['NOTICE','POLICY','RESOURCE'])
 
 // ─── 엔티티 ─────────────────────────────────────────────────
 const nullableString = z.string().nullable().optional().transform(v => v ?? undefined)
@@ -44,14 +45,15 @@ export const patientSchema = z.object({
 export const interpreterSchema = z.object({
   id:        z.string().uuid(),
   name:      z.string(),
-  phone:     z.string().optional(),
+  phone:     nullableString,
   role:      interpreterRoleSchema,
   centerId:  z.string().uuid().nullable().optional(),
   centerName: z.string().nullable().optional(),
   languages: z.array(z.string()).optional().default([]),
   availabilityNote: z.string().nullable().optional(),
+  monthlyWorkHours: z.number().optional().default(0),
   active:    z.boolean(),
-  createdAt: z.string(),
+  createdAt: z.string().optional().default(''),
 })
 
 export const centerSchema = z.object({
@@ -113,6 +115,8 @@ export const consultationSchema = z.object({
 export const patientReportSchema = z.object({
   id:                    z.string().uuid(),
   consultationDate:      z.string(),
+  interpreterId:         nullableUuid,
+  interpreterName:       nullableString,
   hospitalName:          nullableString,
   department:            nullableString,
   doctorName:            nullableString,
@@ -221,6 +225,48 @@ export const centerPatientMemoSchema = z.object({
   updatedAt: z.string(),
 })
 
+export const announcementSchema = z.object({
+  id: z.string().uuid(),
+  centerId: z.string().uuid(),
+  centerName: z.string(),
+  authorAuthUserId: z.string().uuid(),
+  category: announcementCategorySchema,
+  title: z.string(),
+  content: z.string(),
+  linkUrl: z.string().nullable().optional(),
+  pinned: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export const chatRoomMemberSchema = z.object({
+  authUserId: z.string().uuid(),
+  memberName: z.string().nullable().optional(),
+  role: z.enum(['admin', 'interpreter', 'patient']),
+  lastReadAt: z.string(),
+})
+
+export const chatRoomSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().nullable().optional(),
+  lastMessage: z.string().nullable().optional(),
+  lastMessageAt: z.string().nullable().optional(),
+  lastMessageSenderName: z.string().nullable().optional(),
+  unreadCount: z.number(),
+  members: z.array(chatRoomMemberSchema),
+})
+
+export const chatMessageSchema = z.object({
+  id: z.string().uuid(),
+  roomId: z.string().uuid(),
+  senderAuthUserId: z.string().uuid(),
+  senderName: z.string().nullable().optional(),
+  content: z.string(),
+  createdAt: z.string(),
+})
+
+export const chatUnreadCountSchema = z.object({ total: z.number() })
+
 // ─── 배열 스키마 ─────────────────────────────────────────────
 export const schemas = {
   patient:       patientSchema,
@@ -250,4 +296,11 @@ export const schemas = {
   adminWorkLogs: z.array(adminWorkLogSchema),
   centerPatientMemo: centerPatientMemoSchema,
   centerPatientMemos: z.array(centerPatientMemoSchema),
+  announcement: announcementSchema,
+  announcements: z.array(announcementSchema),
+  chatRoom:     chatRoomSchema,
+  chatRooms:    z.array(chatRoomSchema),
+  chatMessage:  chatMessageSchema,
+  chatMessages: z.array(chatMessageSchema),
+  chatUnreadCount: chatUnreadCountSchema,
 }

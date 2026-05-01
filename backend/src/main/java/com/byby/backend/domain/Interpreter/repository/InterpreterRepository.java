@@ -31,11 +31,17 @@ public interface InterpreterRepository extends JpaRepository<Interpreter, UUID> 
                   OR :query = ''
                   OR LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(COALESCE(i.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
-                  OR LOWER(COALESCE(i.availabilityNote, '')) LIKE LOWER(CONCAT('%', :query, '%'))
-                  OR LOWER(COALESCE(language, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+              AND (
+                  :language IS NULL
+                  OR :language = ''
+                  OR LOWER(COALESCE(language, '')) = LOWER(:language)
               )
             """)
-    Page<Interpreter> search(@Param("query") String query, Pageable pageable);
+    Page<Interpreter> search(
+            @Param("query") String query,
+            @Param("language") String language,
+            Pageable pageable);
 
     @Query("""
             SELECT DISTINCT i FROM Interpreter i
@@ -47,12 +53,16 @@ public interface InterpreterRepository extends JpaRepository<Interpreter, UUID> 
                   OR :query = ''
                   OR LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%'))
                   OR LOWER(COALESCE(i.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
-                  OR LOWER(COALESCE(i.availabilityNote, '')) LIKE LOWER(CONCAT('%', :query, '%'))
-                  OR LOWER(COALESCE(language, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+              AND (
+                  :language IS NULL
+                  OR :language = ''
+                  OR LOWER(COALESCE(language, '')) = LOWER(:language)
               )
             """)
     Page<Interpreter> searchByCenter(
             @Param("centerId") UUID centerId,
             @Param("query") String query,
+            @Param("language") String language,
             Pageable pageable);
 }

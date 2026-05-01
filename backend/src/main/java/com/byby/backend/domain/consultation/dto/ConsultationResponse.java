@@ -110,6 +110,8 @@ public class ConsultationResponse {
     public record PatientView(
             UUID id,
             LocalDate consultationDate,
+            UUID interpreterId,
+            String interpreterName,
             String hospitalName,
             String department,
             String doctorName,
@@ -123,6 +125,8 @@ public class ConsultationResponse {
         public static PatientView from(Consultation c) {
             return new PatientView(
                     c.getId(), c.getConsultationDate(),
+                    c.getInterpreter() != null ? c.getInterpreter().getId() : null,
+                    c.getInterpreter() != null ? c.getInterpreter().getName() : null,
                     c.getHospital() != null ? c.getHospital().getName() : null,
                     c.getDepartment(), c.getDoctorName(), c.getPatientComment(),
                     c.getTreatmentResult(), c.getDiagnosisContent(), c.getDiagnosisNameCode(),

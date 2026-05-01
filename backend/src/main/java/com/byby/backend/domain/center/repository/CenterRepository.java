@@ -7,12 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface CenterRepository extends JpaRepository<Center, UUID> {
 
     Optional<Center> findByNameIgnoreCase(String name);
+    Optional<Center> findByNameIgnoreCaseAndActiveTrue(String name);
+    List<Center> findByActiveTrue();
 
     @Query("""
             SELECT c FROM Center c

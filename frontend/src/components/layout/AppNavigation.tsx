@@ -27,6 +27,11 @@ export function DesktopSidebar({ items, pathname }: AppNavigationProps) {
           >
             <span className="text-base">{item.icon}</span>
             <span>{item.label}</span>
+            {!!item.badgeCount && (
+              <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                {item.badgeCount}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
@@ -50,8 +55,13 @@ export function DesktopTopNav({ items, pathname }: AppNavigationProps) {
                 ? 'bg-primary-50 text-primary-700'
                 : 'text-gray-500',
             )}
-          >
+        >
             {item.label}
+            {!!item.badgeCount && (
+              <span className="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                {item.badgeCount}
+              </span>
+            )}
           </Link>
         ))}
       </div>
@@ -74,7 +84,14 @@ export function MobileBottomNav({ items, pathname }: AppNavigationProps) {
           )}
         >
           <span className="text-base">{item.icon}</span>
-          <span className="truncate">{item.label}</span>
+          <span className="relative max-w-full truncate">
+            {item.label}
+            {!!item.badgeCount && (
+              <span className="ml-1 rounded-full bg-red-500 px-1 py-0.5 text-[9px] font-semibold text-white">
+                {item.badgeCount}
+              </span>
+            )}
+          </span>
         </Link>
       ))}
     </nav>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { centerApi } from '@/lib/api'
 import type { Center } from '@/lib/types'
+import { useTranslation } from '@/lib/i18n/I18nContext'
 
 type CenterSearchSelectProps = {
   valueName?: string
@@ -14,9 +15,10 @@ type CenterSearchSelectProps = {
 export default function CenterSearchSelect({
   valueName,
   disabled,
-  placeholder = '센터 검색',
+  placeholder,
   onSelect,
 }: CenterSearchSelectProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState(valueName ?? '')
   const [centers, setCenters] = useState<Center[]>([])
@@ -37,7 +39,7 @@ export default function CenterSearchSelect({
         .catch(() => {
           if (active) {
             setCenters([])
-            setError('센터 검색에 실패했습니다.')
+            setError(t.common.center_search_failed)
           }
         })
         .finally(() => {
@@ -49,7 +51,7 @@ export default function CenterSearchSelect({
       active = false
       window.clearTimeout(timer)
     }
-  }, [open, query])
+  }, [open, query, t.common.center_search_failed])
 
   function close() {
     setOpen(false)
@@ -74,21 +76,21 @@ export default function CenterSearchSelect({
         }}
       >
         <span className={valueName ? 'truncate text-gray-800' : 'truncate text-gray-400'}>
-          {valueName || placeholder}
+          {valueName || placeholder || t.common.center_search}
         </span>
-        <span className="flex-shrink-0 text-xs font-medium text-primary-600">검색</span>
+        <span className="flex-shrink-0 text-xs font-medium text-primary-600">{t.common.search}</span>
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div className="w-full max-w-md rounded-xl bg-white p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-gray-800">근무 센터 검색</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{t.common.center_search}</h3>
               <button
                 type="button"
                 className="text-xl leading-none text-gray-400 hover:text-gray-700"
                 onClick={close}
-                aria-label="닫기"
+                aria-label={t.common.close}
               >
                 x
               </button>
@@ -98,17 +100,17 @@ export default function CenterSearchSelect({
               className="input"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="센터명, 주소, 전화번호 검색"
+              placeholder={placeholder || t.login.center_search_placeholder}
               autoFocus
             />
 
             <div className="mt-3 max-h-72 overflow-y-auto space-y-1">
               {loading ? (
-                <p className="py-6 text-center text-xs text-gray-400">검색 중...</p>
+                <p className="py-6 text-center text-xs text-gray-400">{t.common.searching}</p>
               ) : error ? (
                 <p className="py-6 text-center text-xs text-red-500">{error}</p>
               ) : centers.length === 0 ? (
-                <p className="py-6 text-center text-xs text-gray-400">검색 결과가 없습니다.</p>
+                <p className="py-6 text-center text-xs text-gray-400">{t.common.no_result}</p>
               ) : centers.map(center => (
                 <button
                   key={center.id}

@@ -34,7 +34,7 @@ export const VISA_TYPES: VisaType[] = ['E9', 'E6', 'F1', 'F2', 'F4', 'F5', 'F6',
 export const ISSUE_TYPES: IssueType[] = ['MEDICAL', 'LEGAL', 'LABOR', 'IMMIGRATION', 'OTHER']
 export const CONSULTATION_METHODS: ConsultationMethod[] = ['VISIT', 'PHONE', 'VIDEO', 'OTHER']
 export const PROCESSING_TYPES: ProcessingType[] = ['INTERPRETATION', 'TRANSLATION', 'COUNSELING', 'OTHER']
-export const INTERPRETER_ROLES: InterpreterRole[] = ['ACTIVIST', 'FREELANCER', 'STAFF']
+export const INTERPRETER_ROLES: InterpreterRole[] = ['ACTIVIST', 'STAFF']
 export const SCRIPT_TYPES: ScriptType[] = ['GENERAL', 'EMERGENCY']
 
 export interface EnumLabels {

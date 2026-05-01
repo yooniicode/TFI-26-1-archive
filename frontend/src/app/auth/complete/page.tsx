@@ -55,7 +55,6 @@ export default function AuthCompletePage() {
 
   function requestedRoleLabel(request: RequestedMemberRole): string {
     if (request.role === 'admin') return t.auth_complete.role_admin
-    if (request.interpreterRole === 'FREELANCER') return t.auth_complete.role_freelancer
     if (request.interpreterRole === 'STAFF') return t.auth_complete.role_staff
     return t.auth_complete.role_interpreter
   }
@@ -127,6 +126,10 @@ export default function AuthCompletePage() {
     if (!role) { setError(t.auth_complete.err_profile_save); return }
     if (!name.trim()) { setError(t.auth_complete.err_name); return }
     if (role === 'patient' && !phone.trim()) { setError(t.auth_complete.err_phone); return }
+    if (role === 'patient' && !bootstrapCenterId) {
+      setError(t.auth_complete.err_center)
+      return
+    }
     if (role === 'interpreter' && !bootstrapCenterId && !bootstrapCenterName.trim()) {
       setError(t.auth_complete.err_center)
       return
@@ -149,8 +152,8 @@ export default function AuthCompletePage() {
         nationality: role === 'patient' ? nationality : undefined,
         gender: role === 'patient' ? gender : undefined,
         visaType: role === 'patient' ? visaType : undefined,
-        interpreterRole: role === 'interpreter' ? 'FREELANCER' : undefined,
-        centerId: role === 'interpreter' ? bootstrapCenterId || undefined : undefined,
+        interpreterRole: role === 'interpreter' ? 'ACTIVIST' : undefined,
+        centerId: role === 'interpreter' || role === 'patient' ? bootstrapCenterId || undefined : undefined,
         centerName: role === 'interpreter' ? bootstrapCenterName.trim() || undefined : undefined,
         languages: role === 'interpreter' ? languages : undefined,
         availabilityNote: role === 'interpreter' ? availabilityNote.trim() || undefined : undefined,
@@ -302,7 +305,7 @@ export default function AuthCompletePage() {
             />
           </div>
 
-          {role === 'interpreter' && (
+          {(role === 'interpreter' || role === 'patient') && (
             <div>
               <label className="label">{t.auth_complete.work_center}</label>
               <CenterSearchSelect

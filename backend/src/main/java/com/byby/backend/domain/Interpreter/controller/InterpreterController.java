@@ -43,10 +43,11 @@ public class InterpreterController {
     @Operation(summary = "통번역가 목록 조회")
     public ResponseEntity<Response<List<InterpreterResponse.Summary>>> getAll(
             @RequestParam(required = false) String query,
+            @RequestParam(required = false) String language,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(
-                Response.success(SuccessCode.OK, interpreterService.getAll(query, pageable, principal)));
+                Response.success(SuccessCode.OK, interpreterService.getAll(query, language, pageable, principal)));
     }
 
     @GetMapping("/{id}")

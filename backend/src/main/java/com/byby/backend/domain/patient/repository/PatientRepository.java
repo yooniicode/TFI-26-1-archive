@@ -36,6 +36,47 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     Page<Patient> search(@Param("query") String query, Pageable pageable);
 
     @Query("""
+            SELECT DISTINCT p FROM Patient p
+            JOIN p.patientCenters pc
+            WHERE pc.center.id = :centerId
+              AND (
+                  :query IS NULL
+                  OR :query = ''
+                  OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))
+                  OR LOWER(COALESCE(p.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+                  OR LOWER(COALESCE(p.region, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+            """)
+    Page<Patient> searchByCenter(
+            @Param("centerId") UUID centerId,
+            @Param("query") String query,
+            Pageable pageable);
+
+    @Query("""
+            SELECT DISTINCT p FROM Patient p
+            JOIN p.patientCenters pc
+            JOIN pc.center c
+            WHERE (
+                  c.id = :centerId
+                  OR LOWER(c.name) = LOWER(:centerName)
+                  OR REPLACE(REPLACE(LOWER(c.name), ' ', ''), '-', '') = :compactCenterName
+              )
+              AND (
+                  :query IS NULL
+                  OR :query = ''
+                  OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))
+                  OR LOWER(COALESCE(p.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+                  OR LOWER(COALESCE(p.region, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+            """)
+    Page<Patient> searchByCenterIdentity(
+            @Param("centerId") UUID centerId,
+            @Param("centerName") String centerName,
+            @Param("compactCenterName") String compactCenterName,
+            @Param("query") String query,
+            Pageable pageable);
+
+    @Query("""
             SELECT p FROM Patient p
             WHERE p.id IN (
                 SELECT pm.patient.id FROM PatientMatch pm

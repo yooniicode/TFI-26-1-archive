@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public interface ConsultationRepository extends JpaRepository<Consultation, UUID> {
@@ -71,4 +73,15 @@ public interface ConsultationRepository extends JpaRepository<Consultation, UUID
             WHERE c.patient.id = :patientId AND c.interpreter.id = :interpreterId
             """)
     boolean existsByPatientIdAndInterpreterId(@Param("patientId") UUID patientId, @Param("interpreterId") UUID interpreterId);
+
+    @Query("""
+            SELECT SUM(c.durationHours)
+            FROM Consultation c
+            WHERE c.interpreter.id = :interpreterId
+              AND c.consultationDate BETWEEN :from AND :to
+            """)
+    BigDecimal sumDurationHoursByInterpreterIdAndDateBetween(
+            @Param("interpreterId") UUID interpreterId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
 }

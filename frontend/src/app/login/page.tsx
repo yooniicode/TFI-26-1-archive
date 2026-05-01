@@ -11,7 +11,7 @@ import { useTranslation } from '@/lib/i18n/I18nContext'
 import PasswordInput from '@/components/ui/PasswordInput'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
-type SignupType = 'patient' | 'admin' | 'interpreter' | 'freelancer'
+type SignupType = 'patient' | 'admin' | 'interpreter'
 
 function isInvalidLoginCredentials(error: { message: string }) {
   return error.message.toLowerCase().includes('invalid login credentials')
@@ -121,12 +121,12 @@ export default function LoginPage() {
       setError(t.login.err_password_confirm)
       return
     }
-    if ((accountType === 'interpreter' || accountType === 'freelancer') && !centerId) {
+    if ((accountType === 'patient' || accountType === 'interpreter') && !centerId) {
       setError(t.login.err_center_select)
       return
     }
-    if (accountType === 'admin' && !centerName.trim()) {
-      setError(t.login.err_center_input)
+    if (accountType === 'admin' && !centerId) {
+      setError(t.login.err_center_select)
       return
     }
 
@@ -137,11 +137,7 @@ export default function LoginPage() {
       : accountType === 'patient'
         ? 'patient'
         : 'interpreter'
-    const requestedInterpreterRole = accountType === 'interpreter'
-      ? 'ACTIVIST'
-      : accountType === 'freelancer'
-        ? 'FREELANCER'
-        : undefined
+    const requestedInterpreterRole = accountType === 'interpreter' ? 'ACTIVIST' : undefined
     const { data, error } = await supabase.auth.signUp({
       email,
       password: signupPassword,
@@ -154,13 +150,15 @@ export default function LoginPage() {
           ...(accountType !== 'patient'
             ? {
                 requested_center_name: centerName.trim(),
-                ...((accountType === 'interpreter' || accountType === 'freelancer') && centerId
+                ...((accountType === 'interpreter' || accountType === 'admin') && centerId
                   ? { requested_center_id: centerId }
                   : {}),
               }
             : {}),
           ...(requestedInterpreterRole ? { requested_interpreter_role: requestedInterpreterRole } : {}),
           ...(accountType === 'patient' ? {
+            requested_center_id: centerId,
+            requested_center_name: centerName.trim(),
             nationality,
             gender,
             visa_type: visaType,
@@ -256,7 +254,6 @@ export default function LoginPage() {
     { value: 'patient', label: t.login.type_patient, desc: t.login.type_patient_desc },
     { value: 'admin', label: t.login.type_admin, desc: t.login.type_admin_desc },
     { value: 'interpreter', label: t.login.type_interpreter, desc: t.login.type_interpreter_desc },
-    { value: 'freelancer', label: t.login.type_freelancer, desc: t.login.type_freelancer_desc },
   ]
 
   return (
@@ -366,24 +363,34 @@ export default function LoginPage() {
                 placeholder="010-0000-0000"
               />
             </div>
+            {accountType === 'patient' && (
+              <div>
+                <label className="label">{t.login.work_center}</label>
+                <CenterSearchSelect
+                  valueName={centerName}
+                  placeholder={t.login.center_search_placeholder}
+                  onSelect={(center) => {
+                    setCenterId(center.id)
+                    setCenterName(center.name)
+                  }}
+                />
+              </div>
+            )}
             {accountType === 'admin' && (
               <div>
                 <label className="label">{t.login.work_center}</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={centerName}
-                  onChange={e => {
-                    setCenterName(e.target.value)
-                    setCenterId('')
+                <CenterSearchSelect
+                  valueName={centerName}
+                  placeholder={t.login.center_search_placeholder}
+                  onSelect={(center) => {
+                    setCenterId(center.id)
+                    setCenterName(center.name)
                   }}
-                  placeholder={t.login.center_example}
-                  required
                 />
                 <p className="text-xs text-gray-500 mt-1">{t.login.center_admin_note}</p>
               </div>
             )}
-            {(accountType === 'interpreter' || accountType === 'freelancer') && (
+            {accountType === 'interpreter' && (
               <div>
                 <label className="label">{t.login.work_center}</label>
                 <CenterSearchSelect

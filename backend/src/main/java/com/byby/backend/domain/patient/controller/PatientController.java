@@ -73,8 +73,18 @@ public class PatientController {
                 Response.success(SuccessCode.OK, patientService.update(id, req, principal)));
     }
 
+    @PostMapping("/me/centers/{centerId}")
+    @PreAuthorize("hasRole('patient')")
+    @Operation(summary = "Add center to current patient")
+    public ResponseEntity<Response<PatientResponse.Detail>> addMyCenter(
+            @PathVariable UUID centerId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(
+                Response.success(SuccessCode.OK, patientService.addMyCenter(centerId, principal)));
+    }
+
     @PostMapping("/{id}/centers/{centerId}")
-    @PreAuthorize("hasRole('admin')")
+    @PreAuthorize("hasAnyRole('admin', 'patient')")
     @Operation(summary = "이주민 센터 추가")
     public ResponseEntity<Response<PatientResponse.Detail>> addCenter(
             @PathVariable UUID id,

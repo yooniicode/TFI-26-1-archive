@@ -16,7 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -40,7 +43,7 @@ public class CenterService {
     public CenterResponse.Summary create(CenterRequest.Upsert req, UserPrincipal principal) {
         requireAdmin(principal);
         Center center = getOrCreateByName(req.name());
-        center.update(req.name().trim(), trimToNull(req.address()), trimToNull(req.phone()), req.active());
+        center.update(center.getName(), trimToNull(req.address()), trimToNull(req.phone()), req.active());
         return CenterResponse.Summary.from(center);
     }
 
@@ -60,7 +63,8 @@ public class CenterService {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "centerName is required");
         }
         String normalized = name.trim();
-        return centerRepository.findByNameIgnoreCase(normalized)
+        return centerRepository.findByNameIgnoreCaseAndActiveTrue(normalized)
+                .or(() -> findSimilarActiveCenter(normalized))
                 .orElseGet(() -> centerRepository.save(Center.builder().name(normalized).build()));
     }
 
@@ -86,4 +90,42 @@ public class CenterService {
     private String trimToNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
+
+    private java.util.Optional<Center> findSimilarActiveCenter(String name) {
+        String target = compactCenterName(name);
+        if (target.isBlank()) return java.util.Optional.empty();
+        return centerRepository.findByActiveTrue().stream()
+                .map(center -> new CenterMatch(center, bigramSimilarity(target, compactCenterName(center.getName()))))
+                .filter(match -> match.score() >= 0.88)
+                .max(Comparator.comparingDouble(CenterMatch::score))
+                .map(CenterMatch::center);
+    }
+
+    private String compactCenterName(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[\\s-]+", "");
+    }
+
+    private double bigramSimilarity(String left, String right) {
+        if (left.equals(right)) return 1.0;
+        if (left.length() < 2 || right.length() < 2) return 0.0;
+
+        Map<String, Integer> leftCounts = bigramCounts(left);
+        Map<String, Integer> rightCounts = bigramCounts(right);
+        int shared = 0;
+        for (Map.Entry<String, Integer> entry : leftCounts.entrySet()) {
+            shared += Math.min(entry.getValue(), rightCounts.getOrDefault(entry.getKey(), 0));
+        }
+        return (2.0 * shared) / ((left.length() - 1) + (right.length() - 1));
+    }
+
+    private Map<String, Integer> bigramCounts(String value) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (int i = 0; i < value.length() - 1; i++) {
+            String bigram = value.substring(i, i + 2);
+            counts.merge(bigram, 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    private record CenterMatch(Center center, double score) {}
 }

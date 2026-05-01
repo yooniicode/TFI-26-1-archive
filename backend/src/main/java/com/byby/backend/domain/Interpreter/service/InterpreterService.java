@@ -9,6 +9,7 @@ import com.byby.backend.domain.admin.service.AdminService;
 import com.byby.backend.domain.auth.service.AuthService;
 import com.byby.backend.domain.center.entity.Center;
 import com.byby.backend.domain.center.service.CenterService;
+import com.byby.backend.domain.consultation.repository.ConsultationRepository;
 import com.byby.backend.domain.interpreter.dto.InterpreterRequest;
 import com.byby.backend.domain.interpreter.dto.InterpreterResponse;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
@@ -19,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.UUID;
 
 @Service
@@ -30,6 +33,7 @@ public class InterpreterService {
     private final AuthService authService;
     private final AdminService adminService;
     private final CenterService centerService;
+    private final ConsultationRepository consultationRepository;
 
     @Transactional
     public InterpreterResponse.Detail create(InterpreterRequest.Create req, UserPrincipal principal) {
@@ -55,12 +59,17 @@ public class InterpreterService {
     }
 
     @Transactional
-    public Page<InterpreterResponse.Summary> getAll(String query, Pageable pageable, UserPrincipal principal) {
+    public Page<InterpreterResponse.Summary> getAll(String query, String language, Pageable pageable, UserPrincipal principal) {
         if (!principal.isAdmin()) throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         Center adminCenter = adminService.getAdminCenter(principal);
         authService.syncApprovedInterpreterProfiles();
-        return interpreterRepository.searchByCenter(adminCenter.getId(), query, pageable)
-                .map(InterpreterResponse.Summary::from);
+        YearMonth month = YearMonth.now();
+        LocalDate from = month.atDay(1);
+        LocalDate to = month.atEndOfMonth();
+        return interpreterRepository.searchByCenter(adminCenter.getId(), query, language, pageable)
+                .map(interpreter -> InterpreterResponse.Summary.from(
+                        interpreter,
+                        consultationRepository.sumDurationHoursByInterpreterIdAndDateBetween(interpreter.getId(), from, to)));
     }
 
     public InterpreterResponse.Detail getById(UUID id, UserPrincipal principal) {

@@ -4,6 +4,9 @@ export const queryKeys = {
   centers: ['centers'] as const,
   adminProfile: ['admin', 'profile'] as const,
   adminWorkLogs: (page: number, from = '', to = '') => ['admin', 'work-logs', page, from, to] as const,
+  announcements: {
+    list: (page: number) => ['announcements', 'list', page] as const,
+  },
 
   patients: {
     list:      (page: number, query = '') => ['patients', 'list', page, query] as const,
@@ -14,7 +17,7 @@ export const queryKeys = {
   },
 
   interpreters: {
-    list:   (page: number, query = '') => ['interpreters', 'list', page, query] as const,
+    list:   (page: number, query = '', language = '') => ['interpreters', 'list', page, query, language] as const,
     detail: (id: string)   => ['interpreters', id] as const,
   },
 
@@ -41,5 +44,11 @@ export const queryKeys = {
 
   hospitals: {
     search: (name: string | undefined, page: number) => ['hospitals', 'search', name, page] as const,
+  },
+
+  chat: {
+    rooms:       () => ['chat', 'rooms'] as const,
+    messages:    (roomId: string, page = 0) => ['chat', 'messages', roomId, page] as const,
+    unreadCount: () => ['chat', 'unread-count'] as const,
   },
 }

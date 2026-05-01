@@ -11,9 +11,17 @@ interface AppHeaderProps {
   me?: AuthMe | null
   layoutMode: LayoutMode
   onLayoutModeChange: (mode: LayoutMode) => void
+  pendingApprovals?: number
+  signupRequestLabel?: string
 }
 
-export default function AppHeader({ me, layoutMode, onLayoutModeChange }: AppHeaderProps) {
+export default function AppHeader({
+  me,
+  layoutMode,
+  onLayoutModeChange,
+  pendingApprovals = 0,
+  signupRequestLabel = '가입 요청',
+}: AppHeaderProps) {
   const isDesktopMode = layoutMode === 'desktop'
 
   return (
@@ -30,12 +38,34 @@ export default function AppHeader({ me, layoutMode, onLayoutModeChange }: AppHea
             {me.name ?? me.role}
           </span>
         )}
+        {pendingApprovals > 0 && (
+          <Link
+            href="/members"
+            className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100"
+          >
+            {signupRequestLabel} {pendingApprovals}
+          </Link>
+        )}
         <LanguageSwitcher />
         <LayoutModeToggle mode={layoutMode} onChange={onLayoutModeChange} />
-        <Link href="/mypage" className="flex flex-col gap-1 p-1 rounded hover:bg-gray-100 transition-colors shrink-0" aria-label="마이페이지">
-          <span className="block w-5 h-0.5 bg-gray-600 rounded" />
-          <span className="block w-5 h-0.5 bg-gray-600 rounded" />
-          <span className="block w-5 h-0.5 bg-gray-600 rounded" />
+        <Link
+          href="/mypage"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
+          aria-label="마이페이지"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 21a8 8 0 0 0-16 0" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
         </Link>
       </div>
     </header>

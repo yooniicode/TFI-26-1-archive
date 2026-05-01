@@ -7,12 +7,13 @@ import { adminApi, centerApi, patientApi, interpreterApi, authApi } from '@/lib/
 import { queryKeys } from '@/lib/queryKeys'
 import { createClient } from '@/lib/supabase'
 import { useMe } from '@/hooks/useMe'
-import type { AdminWorkLog, AdminWorkLogTask, Center, Patient, Interpreter, VisaType } from '@/lib/types'
+import type { Center, Patient, Interpreter, VisaType } from '@/lib/types'
 import { VISA_TYPES, useEnumLabels } from '@/lib/i18n/enumLabels'
 import { useTranslation } from '@/lib/i18n/I18nContext'
 import Spinner from '@/components/ui/Spinner'
 import PasswordInput from '@/components/ui/PasswordInput'
 import { INTERPRETER_LANGUAGE_OPTIONS } from '@/lib/constants'
+import CenterSearchSelect from '@/components/center/CenterSearchSelect'
 
 export default function MyPage() {
   const queryClient = useQueryClient()
@@ -38,12 +39,6 @@ export default function MyPage() {
     enabled: me?.role === 'admin',
   })
 
-  const { data: workLogs = [], isLoading: workLogsLoading } = useQuery({
-    queryKey: queryKeys.adminWorkLogs(0),
-    queryFn: () => adminApi.workLogs(0).then(r => r.payload ?? []),
-    enabled: me?.role === 'admin',
-  })
-
   const { data: centers = [], isLoading: centersLoading } = useQuery({
     queryKey: queryKeys.centers,
     queryFn: () => centerApi.list().then(r => r.payload ?? []),
@@ -63,9 +58,8 @@ export default function MyPage() {
   const [centerAddress, setCenterAddress] = useState('')
   const [centerPhone, setCenterPhone] = useState('')
   const [nickname, setNickname] = useState('')
-  const [workDate, setWorkDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [workMemo, setWorkMemo] = useState('')
-  const [workTaskLines, setWorkTaskLines] = useState('')
+  const [patientCenterId, setPatientCenterId] = useState('')
+  const [patientCenterName, setPatientCenterName] = useState('')
 
   useEffect(() => {
     if (patient) {
@@ -134,6 +128,21 @@ export default function MyPage() {
       },
     })
 
+  const { mutate: addPatientCenter, isPending: addingPatientCenter, error: patientCenterError } =
+    useMutation<Patient, Error>({
+      mutationFn: () => {
+        if (!patientCenterId) return Promise.reject(new Error(t.patient.err_center_add))
+        return patientApi.addMyCenter(patientCenterId).then(r => r.payload as Patient)
+      },
+      onSuccess: (updatedPatient) => {
+        setPatientCenterId('')
+        setPatientCenterName('')
+        queryClient.setQueryData(queryKeys.patients.detail(updatedPatient.id), updatedPatient)
+        queryClient.invalidateQueries({ queryKey: queryKeys.patients.detail(me?.entityId ?? '') })
+        queryClient.invalidateQueries({ queryKey: queryKeys.me })
+      },
+    })
+
   const { mutate: saveCenterInfo, isPending: savingCenterInfo, error: centerSaveError } =
     useMutation<Center, Error>({
       mutationFn: () => {
@@ -153,39 +162,6 @@ export default function MyPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.centers })
       },
     })
-
-  const { mutate: createWorkLog, isPending: creatingWorkLog, error: workLogError } = useMutation<unknown, Error>({
-    mutationFn: () => adminApi.createWorkLog({
-      workDate,
-      memo: workMemo,
-      tasks: workTaskLines
-        .split('\n')
-        .map(line => line.trim())
-        .filter(Boolean)
-        .map(content => ({ content, checked: false })),
-    }),
-    onSuccess: () => {
-      setWorkMemo('')
-      setWorkTaskLines('')
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminWorkLogs(0) })
-    },
-  })
-
-  const { mutate: updateWorkLog } = useMutation<unknown, Error, AdminWorkLog>({
-    mutationFn: (log) => adminApi.updateWorkLog(log.id, {
-      workDate: log.workDate,
-      memo: log.memo ?? '',
-      tasks: log.tasks,
-    }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminWorkLogs(0) }),
-  })
-
-  function toggleTask(log: AdminWorkLog, index: number) {
-    const tasks: AdminWorkLogTask[] = log.tasks.map((task, idx) =>
-      idx === index ? { ...task, checked: !task.checked } : task,
-    )
-    updateWorkLog({ ...log, tasks })
-  }
 
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -226,7 +202,7 @@ export default function MyPage() {
     window.location.href = '/login'
   }
 
-  const loading = meLoading || patientLoading || interpreterLoading || adminProfileLoading || workLogsLoading || centersLoading
+  const loading = meLoading || patientLoading || interpreterLoading || adminProfileLoading || centersLoading
   if (loading) return <AppShell><Spinner /></AppShell>
   if (!meLoading && me && me.role !== 'admin' && !me.entityId) {
     window.location.replace('/auth/complete')
@@ -256,7 +232,7 @@ export default function MyPage() {
                 </select>
                 <input className="input" value={centerName} onChange={e => setCenterName(e.target.value)} placeholder={t.mypage.center_example} />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div>
                   <label className="label">{t.mypage.center_phone}</label>
                   <input className="input" value={centerPhone} onChange={e => setCenterPhone(e.target.value)} placeholder={t.mypage.center_phone_placeholder} />
@@ -273,70 +249,16 @@ export default function MyPage() {
               {adminSaveError && <p className="text-red-500 text-xs">{adminSaveError.message}</p>}
               {centerSaveError && <p className="text-red-500 text-xs">{centerSaveError.message}</p>}
               {adminSaved && <p className="text-green-600 text-xs">{t.mypage.admin_save_success}</p>}
-              <button type="button" className="btn-secondary w-full" disabled={savingCenterInfo} onClick={() => saveCenterInfo()}>
-                {savingCenterInfo ? t.mypage.saving : centerId ? t.mypage.center_update : t.mypage.center_create}
-              </button>
-              <button type="submit" className="btn-primary w-full" disabled={savingAdminProfile}>
-                {savingAdminProfile ? t.mypage.saving : t.mypage.admin_save}
-              </button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button type="button" className="btn-secondary w-full" disabled={savingCenterInfo} onClick={() => saveCenterInfo()}>
+                  {savingCenterInfo ? t.mypage.saving : centerId ? t.mypage.center_update : t.mypage.center_create}
+                </button>
+                <button type="submit" className="btn-primary w-full" disabled={savingAdminProfile}>
+                  {savingAdminProfile ? t.mypage.saving : t.mypage.admin_save}
+                </button>
+              </div>
             </form>
 
-            <section className="border-t pt-5 space-y-4">
-              <div>
-                <h2 className="font-semibold">{t.mypage.work_log_title}</h2>
-                <p className="text-xs text-gray-500 mt-1">{t.mypage.work_log_desc}</p>
-              </div>
-
-              <form onSubmit={e => { e.preventDefault(); createWorkLog() }} className="space-y-3">
-                <div>
-                  <label className="label">{t.mypage.work_date}</label>
-                  <input type="date" className="input" value={workDate} onChange={e => setWorkDate(e.target.value)} required />
-                </div>
-                <div>
-                  <label className="label">{t.mypage.work_memo}</label>
-                  <textarea className="input min-h-20" value={workMemo} onChange={e => setWorkMemo(e.target.value)} placeholder={t.mypage.work_memo_placeholder} />
-                </div>
-                <div>
-                  <label className="label">{t.mypage.checklist}</label>
-                  <textarea
-                    className="input min-h-24"
-                    value={workTaskLines}
-                    onChange={e => setWorkTaskLines(e.target.value)}
-                    placeholder={t.mypage.checklist_placeholder}
-                  />
-                </div>
-                {workLogError && <p className="text-red-500 text-xs">{workLogError.message}</p>}
-                <button type="submit" className="btn-secondary w-full" disabled={creatingWorkLog}>
-                  {creatingWorkLog ? t.mypage.work_log_saving : t.mypage.work_log_save}
-                </button>
-              </form>
-
-              <div className="space-y-2">
-                {workLogs.length === 0 && <p className="text-sm text-gray-400 text-center py-4">{t.mypage.no_work_log}</p>}
-                {workLogs.map(log => (
-                  <div key={log.id} className="card space-y-2">
-                    <div>
-                      <p className="text-sm font-semibold">{log.workDate}</p>
-                      {log.memo && <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{log.memo}</p>}
-                    </div>
-                    {log.tasks.length > 0 && (
-                      <div className="space-y-1">
-                        {log.tasks.map((task, idx) => (
-                          <label key={`${log.id}-${idx}`} className="flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={task.checked}
-                              onChange={() => toggleTask(log, idx)}
-                            />
-                            <span className={task.checked ? 'line-through text-gray-400' : ''}>{task.content}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
           </div>
         )}
 
@@ -373,6 +295,46 @@ export default function MyPage() {
                 <div>
                   <label className="label">{t.mypage.visa_note}</label>
                   <input className="input" value={visaNote} onChange={e => setVisaNote(e.target.value)} />
+                </div>
+                <div className="rounded-lg border border-gray-100 bg-white p-3 space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold">{t.patient.affiliation_center}</p>
+                    <div className="mt-2 space-y-1">
+                      {(patient?.centers ?? []).length === 0 ? (
+                        <p className="text-xs text-gray-400">{t.patient.no_center}</p>
+                      ) : (
+                        patient?.centers.map(center => (
+                          <p key={center.id} className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                            {center.name}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">{t.patient.add_center}</label>
+                    <CenterSearchSelect
+                      valueName={patientCenterName}
+                      placeholder={t.patient.center_search_placeholder}
+                      onSelect={(center) => {
+                        setPatientCenterId(center.id)
+                        setPatientCenterName(center.name)
+                      }}
+                    />
+                  </div>
+                  {patientCenterError && <p className="text-red-500 text-xs">{patientCenterError.message}</p>}
+                  <button
+                    type="button"
+                    className="btn-secondary w-full"
+                    disabled={!patientCenterId || addingPatientCenter || (patient?.centers ?? []).some(center => center.id === patientCenterId)}
+                    onClick={() => addPatientCenter()}
+                  >
+                    {(patient?.centers ?? []).some(center => center.id === patientCenterId)
+                      ? t.patient.already_registered
+                      : addingPatientCenter
+                        ? t.patient.adding
+                        : t.patient.add_center}
+                  </button>
                 </div>
               </>
             )}

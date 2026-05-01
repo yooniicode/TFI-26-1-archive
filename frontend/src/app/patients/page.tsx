@@ -8,7 +8,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Badge from '@/components/ui/Badge'
 import { patientApi } from '@/lib/api'
 import { useMe } from '@/hooks/useMe'
-import type { Gender, Nationality, Patient, VisaType } from '@/lib/types'
+import type { Gender, Nationality, PageInfo, Patient, VisaType } from '@/lib/types'
 import { GENDERS, NATIONALITIES, VISA_TYPES, useEnumLabels } from '@/lib/i18n/enumLabels'
 import { useTranslation } from '@/lib/i18n/I18nContext'
 
@@ -35,10 +35,12 @@ const initialForm: CreatePatientForm = {
 }
 
 export default function PatientsPage() {
-  const { data: me } = useMe()
+  const { data: me, isLoading: meLoading } = useMe()
   const { t } = useTranslation()
   const labels = useEnumLabels()
   const [items, setItems] = useState<Patient[]>([])
+  const [page, setPage] = useState(0)
+  const [pageInfo, setPageInfo] = useState<PageInfo | undefined>()
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
@@ -46,19 +48,37 @@ export default function PatientsPage() {
   const [form, setForm] = useState<CreatePatientForm>(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [listError, setListError] = useState('')
+  const [copiedPatientId, setCopiedPatientId] = useState<string | null>(null)
+  const canLoadPatients = me?.role === 'admin' || me?.role === 'interpreter'
 
   useEffect(() => {
+    if (!canLoadPatients) {
+      setLoading(false)
+      return
+    }
     let cancelled = false
     setLoading(true)
-    patientApi.list(0, submittedQuery)
+    setListError('')
+    patientApi.list(page, submittedQuery)
       .then(r => {
-        if (!cancelled) setItems(r.payload ?? [])
+        if (!cancelled) {
+          setItems(r.payload ?? [])
+          setPageInfo(r.pageInfo)
+        }
+      })
+      .catch(e => {
+        if (!cancelled) {
+          setItems([])
+          setPageInfo(undefined)
+          setListError(e instanceof Error ? e.message : t.patient.empty)
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
-      })
+    })
     return () => { cancelled = true }
-  }, [submittedQuery])
+  }, [canLoadPatients, me?.authUserId, page, submittedQuery, t.patient.empty])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -78,12 +98,20 @@ export default function PatientsPage() {
       })
       setForm(initialForm)
       setShowCreate(false)
+      setPage(0)
       setSubmittedQuery(query.trim())
     } catch (e) {
       setError(e instanceof Error ? e.message : t.patient.err_register)
     } finally {
       setSaving(false)
     }
+  }
+
+  async function copySignupGuide(patient: Patient) {
+    const message = t.patient.invite_message(patient.name, patient.phone)
+    await navigator.clipboard.writeText(message)
+    setCopiedPatientId(patient.id)
+    window.setTimeout(() => setCopiedPatientId(current => current === patient.id ? null : current), 2000)
   }
 
   return (
@@ -110,6 +138,7 @@ export default function PatientsPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault()
+            setPage(0)
             setSubmittedQuery(query.trim())
           }}
           className="flex gap-2"
@@ -134,7 +163,7 @@ export default function PatientsPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div>
                 <label className="label">{t.patient.nationality}</label>
                 <select
@@ -156,7 +185,7 @@ export default function PatientsPage() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div>
                 <label className="label">{t.patient.visa}</label>
                 <select
@@ -203,7 +232,7 @@ export default function PatientsPage() {
               />
             </div>
             {error && <p className="text-red-500 text-xs">{error}</p>}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>
                 {t.common.cancel}
               </button>
@@ -214,34 +243,66 @@ export default function PatientsPage() {
           </form>
         )}
 
-        {loading ? (
+        {meLoading || loading ? (
           <Spinner />
+        ) : listError ? (
+          <EmptyState message={listError} />
         ) : items.length === 0 ? (
           <EmptyState
             message={me?.role === 'interpreter' ? t.patient.empty_interpreter : t.patient.empty}
           />
         ) : (
-          <div className="space-y-2">
-            {items.map(p => (
-              <Link
-                key={p.id}
-                href={`/patients/${p.id}`}
-                className="card block hover:border-primary-200 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {labels.nationality[p.nationality]} · {labels.gender[p.gender]} · {labels.visa[p.visaType]}
-                    </p>
-                    {p.region && <p className="text-xs text-gray-400">{p.region}</p>}
-                  </div>
-                  <Badge variant={p.accountLinked ? 'green' : 'yellow'}>
-                    {p.accountLinked ? t.patient.account_linked : t.patient.account_unlinked}
-                  </Badge>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              {items.map(p => (
+                <div key={p.id} className="card space-y-3">
+                  <Link href={`/patients/${p.id}`} className="block hover:text-primary-700 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{p.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {labels.nationality[p.nationality]} / {labels.gender[p.gender]} / {labels.visa[p.visaType]}
+                        </p>
+                        {p.region && <p className="text-xs text-gray-400">{p.region}</p>}
+                      </div>
+                      <Badge variant={p.accountLinked ? 'green' : 'yellow'}>
+                        {p.accountLinked ? t.patient.account_linked : t.patient.account_unlinked}
+                      </Badge>
+                    </div>
+                  </Link>
+                  {me?.role === 'admin' && !p.accountLinked && (
+                    <button
+                      type="button"
+                      className="btn-secondary w-full py-1.5 text-sm"
+                      onClick={() => copySignupGuide(p)}
+                    >
+                      {copiedPatientId === p.id ? t.patient.invite_copied : t.patient.invite_signup}
+                    </button>
+                  )}
                 </div>
-              </Link>
-            ))}
+              ))}
+            </div>
+            {(page > 0 || pageInfo?.hasNext) && (
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="btn-secondary px-3 py-1.5 text-sm"
+                  disabled={page === 0}
+                  onClick={() => setPage(prev => Math.max(prev - 1, 0))}
+                >
+                  {t.common.prev_page}
+                </button>
+                <span className="text-xs text-gray-500">{t.common.page_label(page + 1)}</span>
+                <button
+                  type="button"
+                  className="btn-secondary px-3 py-1.5 text-sm"
+                  disabled={!pageInfo?.hasNext}
+                  onClick={() => setPage(prev => prev + 1)}
+                >
+                  {t.common.next_page}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

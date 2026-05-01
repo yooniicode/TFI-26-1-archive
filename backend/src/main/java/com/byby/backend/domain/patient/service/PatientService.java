@@ -5,6 +5,8 @@ import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.BusinessErrorCode;
 import com.byby.backend.common.response.code.GeneralErrorCode;
 import com.byby.backend.common.security.UserPrincipal;
+import com.byby.backend.domain.admin.service.AdminService;
+import com.byby.backend.domain.center.entity.Center;
 import com.byby.backend.domain.center.repository.CenterRepository;
 import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
@@ -21,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -33,12 +36,14 @@ public class PatientService {
     private final InterpreterRepository interpreterRepository;
     private final PatientMatchRepository patientMatchRepository;
     private final CenterRepository centerRepository;
+    private final AdminService adminService;
 
     @Transactional
     public PatientResponse.Detail create(PatientRequest.Create req, UserPrincipal principal) {
         if (!principal.isAdmin() && !principal.isPatient()) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
+        Center adminCenter = principal.isAdmin() ? adminService.getAdminCenter(principal) : null;
         UUID authUserId = principal.isAdmin() ? req.authUserId() : principal.getAuthUserId();
         if (authUserId != null && patientRepository.existsByAuthUserId(authUserId)) {
             throw new BusinessException(BusinessErrorCode.PATIENT_ALREADY_EXISTS);
@@ -55,18 +60,28 @@ public class PatientService {
                 .region(req.region())
                 .build();
         Patient saved = patientRepository.save(patient);
-        if (req.centerIds() != null) {
+        if (req.centerIds() != null && !req.centerIds().isEmpty()) {
             req.centerIds().forEach(centerId ->
                     centerRepository.findById(centerId).ifPresent(center ->
                             patientCenterRepository.save(PatientCenter.builder()
                                     .patient(saved).center(center).build())));
+        } else if (adminCenter != null) {
+            patientCenterRepository.save(PatientCenter.builder()
+                    .patient(saved).center(adminCenter).build());
         }
         return PatientResponse.Detail.from(patientRepository.save(saved));
     }
 
     public Page<PatientResponse.Summary> getAll(String query, Pageable pageable, UserPrincipal principal) {
         if (principal.isAdmin()) {
-            return patientRepository.search(query, pageable).map(PatientResponse.Summary::from);
+            Center adminCenter = adminService.getAdminCenter(principal);
+            return patientRepository.searchByCenterIdentity(
+                            adminCenter.getId(),
+                            adminCenter.getName(),
+                            compactCenterName(adminCenter.getName()),
+                            query,
+                            pageable)
+                    .map(PatientResponse.Summary::from);
         }
         if (principal.isInterpreter()) {
             Interpreter interpreter = interpreterRepository.findByAuthUserId(principal.getAuthUserId())
@@ -100,17 +115,29 @@ public class PatientService {
     }
 
     @Transactional
-    public PatientResponse.Detail addCenter(UUID patientId, UUID centerId, UserPrincipal principal) {
-        Patient patient = findPatient(patientId);
-        if (!principal.isAdmin()) {
+    public PatientResponse.Detail addMyCenter(UUID centerId, UserPrincipal principal) {
+        if (principal == null) {
+            throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
+        }
+        if (!principal.isPatient()) {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
-        if (patientCenterRepository.existsByPatientIdAndCenterId(patientId, centerId)) {
-            throw new BusinessException(BusinessErrorCode.PATIENT_CENTER_ALREADY_EXISTS);
+        Patient patient = patientRepository.findByAuthUserId(principal.getAuthUserId())
+                .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
+        return addCenterToPatient(patient, centerId);
+    }
+
+    @Transactional
+    public PatientResponse.Detail addCenter(UUID patientId, UUID centerId, UserPrincipal principal) {
+        Patient patient = findPatient(patientId);
+        if (principal.isPatient()) {
+            if (!principal.getAuthUserId().equals(patient.getAuthUserId())) {
+                throw new BusinessException(BusinessErrorCode.ACCESS_DENIED_NOT_OWNER);
+            }
+        } else if (!principal.isAdmin()) {
+            throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
-        centerRepository.findById(centerId).ifPresent(center ->
-                patientCenterRepository.save(PatientCenter.builder().patient(patient).center(center).build()));
-        return PatientResponse.Detail.from(patientRepository.findById(patientId).orElseThrow());
+        return addCenterToPatient(patient, centerId);
     }
 
     @Transactional
@@ -126,6 +153,20 @@ public class PatientService {
     private Patient findPatient(UUID id) {
         return patientRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.PATIENT_NOT_FOUND));
+    }
+
+    private String compactCenterName(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[\\s-]+", "");
+    }
+
+    private PatientResponse.Detail addCenterToPatient(Patient patient, UUID centerId) {
+        if (patientCenterRepository.existsByPatientIdAndCenterId(patient.getId(), centerId)) {
+            throw new BusinessException(BusinessErrorCode.PATIENT_CENTER_ALREADY_EXISTS);
+        }
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
+        patientCenterRepository.save(PatientCenter.builder().patient(patient).center(center).build());
+        return PatientResponse.Detail.from(patientRepository.findById(patient.getId()).orElseThrow());
     }
 
     private void checkPatientAccess(Patient patient, UserPrincipal principal) {
