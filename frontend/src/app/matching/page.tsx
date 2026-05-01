@@ -1,15 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import Spinner from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { matchApi, patientApi, interpreterApi } from '@/lib/api'
 import type { PatientMatch, Patient, Interpreter } from '@/lib/types'
 import { useTranslation } from '@/lib/i18n/I18nContext'
+import { useMe } from '@/hooks/useMe'
 
 export default function MatchingPage() {
   const { t } = useTranslation()
+  const { data: me, isLoading: meLoading } = useMe()
   const [matches, setMatches] = useState<PatientMatch[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [interpreters, setInterpreters] = useState<Interpreter[]>([])
@@ -17,8 +19,15 @@ export default function MatchingPage() {
   const [form, setForm] = useState({ patientId: '', interpreterId: '' })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const needsAdminCenter = me?.role === 'admin' && !me.centerId && !me.centerName
 
-  function load() {
+  const load = useCallback(() => {
+    if (needsAdminCenter) {
+      setMatches([])
+      setPatients([])
+      setInterpreters([])
+      return Promise.resolve()
+    }
     return Promise.all([
       matchApi.list(),
       patientApi.list(),
@@ -28,9 +37,20 @@ export default function MatchingPage() {
       setPatients(pRes.payload ?? [])
       setInterpreters((iRes.payload ?? []).filter(i => i.active))
     })
-  }
+  }, [needsAdminCenter])
 
-  useEffect(() => { load().finally(() => setLoading(false)) }, [])
+  useEffect(() => {
+    if (meLoading) return
+    if (!me) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError('')
+    load()
+      .catch(e => setError(e instanceof Error ? e.message : t.matching.empty))
+      .finally(() => setLoading(false))
+  }, [load, me, meLoading, t.matching.empty])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -57,12 +77,19 @@ export default function MatchingPage() {
     return detail ? `${interpreter.name} (${detail})` : interpreter.name
   }
 
-  if (loading) return <AppShell><Spinner /></AppShell>
+  if (loading || meLoading) return <AppShell><Spinner /></AppShell>
 
   return (
     <AppShell>
       <h1 className="text-lg font-bold mb-4">{t.matching.title}</h1>
 
+      {needsAdminCenter && (
+        <div className="mb-4">
+          <EmptyState message={t.common.admin_center_required} />
+        </div>
+      )}
+
+      {!needsAdminCenter && (
       <form onSubmit={handleCreate} className="card mb-4 space-y-3">
         <h2 className="font-semibold text-sm">{t.matching.form_title}</h2>
         <div>
@@ -88,11 +115,14 @@ export default function MatchingPage() {
           {submitting ? t.matching.processing : t.matching.create_btn}
         </button>
       </form>
+      )}
 
-      <h2 className="font-semibold text-sm mb-2">{t.matching.active_matches} ({matches.length})</h2>
-      {matches.length === 0 ? (
+      {!needsAdminCenter && <h2 className="font-semibold text-sm mb-2">{t.matching.active_matches} ({matches.length})</h2>}
+      {!needsAdminCenter && error ? (
+        <EmptyState message={error} />
+      ) : !needsAdminCenter && matches.length === 0 ? (
         <EmptyState message={t.matching.empty} />
-      ) : (
+      ) : !needsAdminCenter ? (
         <div className="space-y-2">
           {matches.map(m => (
             <div key={m.id} className="card flex items-center justify-between">
@@ -107,7 +137,7 @@ export default function MatchingPage() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </AppShell>
   )
 }

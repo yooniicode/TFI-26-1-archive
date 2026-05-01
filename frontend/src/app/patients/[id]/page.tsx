@@ -27,6 +27,7 @@ export default function PatientDetailPage() {
   const [interpreterVisible, setInterpreterVisible] = useState(true)
   const [memoSaving, setMemoSaving] = useState(false)
   const [memoError, setMemoError] = useState('')
+  const [historyError, setHistoryError] = useState('')
 
   const [centerPopupOpen, setCenterPopupOpen] = useState(false)
   const [centerSearchQuery, setCenterSearchQuery] = useState('')
@@ -34,21 +35,55 @@ export default function PatientDetailPage() {
   const [centerActionLoading, setCenterActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([
-      authApi.me(),
-      patientApi.get(id),
-      patientApi.history(id),
-      handoverApi.byPatient(id),
-    ]).then(([meRes, pRes, hRes, hoRes]) => {
-      setMe(meRes.payload)
-      setPatient(pRes.payload)
-      setHistory(hRes.payload ?? [])
-      setHandovers(hoRes.payload ?? [])
-    }).finally(() => setLoading(false))
-  }, [id])
+    let cancelled = false
+
+    async function load() {
+      setLoading(true)
+      setHistoryError('')
+      try {
+        const meRes = await authApi.me()
+        if (cancelled) return
+        const currentMe = meRes.payload
+        setMe(currentMe)
+
+        const [pRes, hoRes] = await Promise.all([
+          patientApi.get(id),
+          handoverApi.byPatient(id),
+        ])
+        if (cancelled) return
+        setPatient(pRes.payload)
+        setHandovers(hoRes.payload ?? [])
+
+        if (currentMe.role === 'admin' && !currentMe.centerId && !currentMe.centerName) {
+          setHistory([])
+          setHistoryError(t.common.admin_center_required)
+          return
+        }
+
+        try {
+          const hRes = await patientApi.history(id)
+          if (!cancelled) setHistory(hRes.payload ?? [])
+        } catch (e) {
+          if (!cancelled) {
+            setHistory([])
+            setHistoryError(e instanceof Error ? e.message : t.patient.no_consultation)
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [id, t.common.admin_center_required, t.patient.no_consultation])
 
   useEffect(() => {
     if (!me || (me.role !== 'admin' && me.role !== 'interpreter')) return
+    if (me.role === 'admin' && !me.centerId && !me.centerName) {
+      setMemos([])
+      return
+    }
     adminApi.patientMemos(id)
       .then(res => setMemos(res.payload ?? []))
       .catch(() => setMemos([]))
@@ -246,7 +281,9 @@ export default function PatientDetailPage() {
         <h2 className="font-semibold text-sm mb-2">
           {t.patient.consultation_history} ({history.length}건)
         </h2>
-        {history.length === 0 ? (
+        {historyError ? (
+          <p className="text-sm text-red-500 text-center py-4">{historyError}</p>
+        ) : history.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">{t.patient.no_consultation}</p>
         ) : (
           <div className="space-y-2">

@@ -35,7 +35,7 @@ export default function HandoversPage() {
       .then(([meRes, pRes]) => {
         setMe(meRes.payload)
         setPatients(pRes.payload ?? [])
-        if (meRes.payload.role === 'admin') {
+        if (meRes.payload.role === 'admin' && (meRes.payload.centerId || meRes.payload.centerName)) {
           return interpreterApi.list().then(r => setInterpreters(r.payload ?? []))
         }
       })

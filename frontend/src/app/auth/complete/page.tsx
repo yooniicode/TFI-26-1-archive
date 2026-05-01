@@ -87,7 +87,7 @@ export default function AuthCompletePage() {
         setIsOtpUser(payload.amr?.some((a: { method: string }) => a.method === 'otp') ?? false)
       } catch { /* ignore decode errors */ }
 
-      const completeSignup = requestedMemberRole
+      const completeSignup = requestedMemberRole?.role === 'interpreter'
         ? authApi.completeSignup().catch(() => undefined)
         : Promise.resolve()
 

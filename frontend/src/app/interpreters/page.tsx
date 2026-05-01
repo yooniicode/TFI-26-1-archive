@@ -10,17 +10,21 @@ import { interpreterApi } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { useEnumLabels } from '@/lib/i18n/enumLabels'
 import { useTranslation } from '@/lib/i18n/I18nContext'
+import { useMe } from '@/hooks/useMe'
 
 export default function InterpretersPage() {
   const queryClient = useQueryClient()
   const { t } = useTranslation()
   const labels = useEnumLabels()
+  const { data: me, isLoading: meLoading } = useMe()
   const [query, setQuery] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
+  const needsAdminCenter = me?.role === 'admin' && !me.centerId && !me.centerName
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [], isLoading, error } = useQuery({
     queryKey: queryKeys.interpreters.list(0, submittedQuery),
     queryFn: () => interpreterApi.list(0, submittedQuery).then(r => r.payload ?? []),
+    enabled: !meLoading && !!me && !needsAdminCenter,
   })
 
   const { mutate: deactivate } = useMutation({
@@ -56,8 +60,12 @@ export default function InterpretersPage() {
           <button type="submit" className="btn-secondary shrink-0">{t.common.search}</button>
         </form>
 
-        {isLoading ? (
+        {meLoading || isLoading ? (
           <Spinner />
+        ) : needsAdminCenter ? (
+          <EmptyState message={t.common.admin_center_required} />
+        ) : error ? (
+          <EmptyState message={error instanceof Error ? error.message : t.interpreter.empty} />
         ) : items.length === 0 ? (
           <EmptyState message={t.interpreter.empty} />
         ) : (

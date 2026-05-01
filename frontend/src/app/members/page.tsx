@@ -17,8 +17,9 @@ type MemberRoleOption = 'admin' | 'activist' | 'freelancer'
 export default function MembersPage() {
   const queryClient = useQueryClient()
   const { t } = useTranslation()
-  const { data: me } = useMe()
+  const { data: me, isLoading: meLoading } = useMe()
   const [editing, setEditing] = useState<Record<string, UpdateMemberRoleRequest>>({})
+  const needsAdminCenter = me?.role === 'admin' && !me.centerId && !me.centerName
 
   const roleLabels: Record<MemberRoleOption, string> = {
     admin: t.member.role_admin,
@@ -29,6 +30,7 @@ export default function MembersPage() {
   const { data: members = [], isLoading } = useQuery({
     queryKey: queryKeys.members,
     queryFn: () => authApi.members().then(r => r.payload ?? []),
+    enabled: !meLoading && !!me && !needsAdminCenter,
   })
 
   const { mutate: saveRole, isPending, error } = useMutation({
@@ -68,7 +70,7 @@ export default function MembersPage() {
     }))
   }
 
-  if (isLoading) return <AppShell><Spinner /></AppShell>
+  if (meLoading || isLoading) return <AppShell><Spinner /></AppShell>
 
   return (
     <AppShell>
@@ -80,7 +82,9 @@ export default function MembersPage() {
 
         {error && <p className="text-xs text-red-500">{error instanceof Error ? error.message : t.member.err_save}</p>}
 
-        {members.length === 0 ? (
+        {needsAdminCenter ? (
+          <EmptyState message={t.common.admin_center_required} />
+        ) : members.length === 0 ? (
           <EmptyState message={t.member.empty} />
         ) : (
           <div className="space-y-3">

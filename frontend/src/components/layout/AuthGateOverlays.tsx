@@ -7,6 +7,7 @@ import { authApi } from '@/lib/api'
 import { getRequestedMemberRole, type RequestedMemberRole } from '@/lib/authMetadata'
 import type { AuthMe } from '@/lib/types'
 import PasswordInput from '@/components/ui/PasswordInput'
+import { useTranslation } from '@/lib/i18n/I18nContext'
 
 interface AuthGateOverlaysProps {
   me?: AuthMe | null
@@ -22,6 +23,7 @@ const requestedRoleLabel = (request: RequestedMemberRole) => {
 
 export default function AuthGateOverlays({ me, pathname }: AuthGateOverlaysProps) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [pendingRequest, setPendingRequest] = useState<RequestedMemberRole | null>(null)
   const [bootstrapLoading, setBootstrapLoading] = useState(false)
   const [bootstrapError, setBootstrapError] = useState('')
@@ -37,7 +39,7 @@ export default function AuthGateOverlays({ me, pathname }: AuthGateOverlaysProps
       const request = getRequestedMemberRole(session?.user.user_metadata ?? null)
       setPendingRequest(request)
       if (request?.centerName) setBootstrapCenterName(request.centerName)
-      if (request) authApi.completeSignup().catch(() => undefined)
+      if (request?.role === 'interpreter') authApi.completeSignup().catch(() => undefined)
     })
   }, [router])
 
@@ -77,9 +79,38 @@ export default function AuthGateOverlays({ me, pathname }: AuthGateOverlaysProps
       : me.role !== 'interpreter' || !me.entityId
   )
   const needsProfile = !!me && me.role !== 'admin' && !me.entityId && !needsApproval && !pathname.startsWith('/auth/')
+  const needsAdminCenter = !!me
+    && me.role === 'admin'
+    && !me.centerId
+    && !me.centerName
+    && !needsApproval
+    && !pathname.startsWith('/auth/')
+    && !pathname.startsWith('/mypage')
 
   return (
     <>
+      {needsAdminCenter && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pb-10">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <p className="text-lg mb-1">{t.common.admin_center_required}</p>
+            <p className="text-sm text-gray-500 mb-5">{t.common.admin_center_required_desc}</p>
+            <button
+              onClick={() => router.push('/mypage')}
+              className="btn-primary w-full"
+            >
+              {t.common.setup_center}
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="btn-secondary w-full mt-2"
+            >
+              {t.auth.logout}
+            </button>
+          </div>
+        </div>
+      )}
+
       {needsProfile && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pb-10">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">

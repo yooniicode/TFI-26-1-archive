@@ -18,9 +18,10 @@ type SortDirection = 'asc' | 'desc'
 export default function ConsultationsPage() {
   const { t } = useTranslation()
   const labels = useEnumLabels()
-  const { data: me } = useMe()
+  const { data: me, isLoading: meLoading } = useMe()
   const [items, setItems] = useState<Consultation[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [patientQuery, setPatientQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortBy>('consultationDate')
   const [direction, setDirection] = useState<SortDirection>('desc')
@@ -32,18 +33,44 @@ export default function ConsultationsPage() {
   }
 
   useEffect(() => {
+    if (meLoading) return
+    if (me?.role === 'admin' && !me.centerId && !me.centerName) {
+      setItems([])
+      setError(t.common.admin_center_required)
+      setLoading(false)
+      return
+    }
+    if (!me) {
+      setItems([])
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
     setLoading(true)
+    setError('')
     consultationApi.list({ page: 0, patientQuery, sortBy, direction })
-      .then(cRes => setItems(cRes.payload ?? []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false))
-  }, [patientQuery, sortBy, direction])
+      .then(cRes => {
+        if (!cancelled) setItems(cRes.payload ?? [])
+      })
+      .catch(e => {
+        if (!cancelled) {
+          setItems([])
+          setError(e instanceof Error ? e.message : t.consultation.err_save)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [me, meLoading, patientQuery, sortBy, direction, t])
 
   function toggleDirection() {
     setDirection(prev => prev === 'desc' ? 'asc' : 'desc')
   }
 
-  if (loading) return <AppShell><Spinner /></AppShell>
+  if (loading || meLoading) return <AppShell><Spinner /></AppShell>
 
   return (
     <AppShell>
@@ -95,7 +122,9 @@ export default function ConsultationsPage() {
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {error ? (
+        <EmptyState message={error} />
+      ) : items.length === 0 ? (
         <EmptyState message={t.consultation.empty} />
       ) : (
         <div className="space-y-2">
