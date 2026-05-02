@@ -14,7 +14,6 @@ import com.byby.backend.domain.matching.repository.PatientMatchRepository;
 import com.byby.backend.domain.patient.dto.PatientRequest;
 import com.byby.backend.domain.patient.dto.PatientResponse;
 import com.byby.backend.domain.patient.entity.Patient;
-import com.byby.backend.domain.patient.entity.PatientCenter;
 import com.byby.backend.domain.patient.repository.PatientCenterRepository;
 import com.byby.backend.domain.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
@@ -61,15 +60,13 @@ public class PatientService {
                 .build();
         Patient saved = patientRepository.save(patient);
         if (req.centerIds() != null && !req.centerIds().isEmpty()) {
-            req.centerIds().forEach(centerId ->
+            req.centerIds().stream().distinct().forEach(centerId ->
                     centerRepository.findById(centerId).ifPresent(center ->
-                            patientCenterRepository.save(PatientCenter.builder()
-                                    .patient(saved).center(center).build())));
+                            patientCenterRepository.save(saved.addCenter(center))));
         } else if (adminCenter != null) {
-            patientCenterRepository.save(PatientCenter.builder()
-                    .patient(saved).center(adminCenter).build());
+            patientCenterRepository.save(saved.addCenter(adminCenter));
         }
-        return PatientResponse.Detail.from(patientRepository.save(saved));
+        return PatientResponse.Detail.from(saved);
     }
 
     public Page<PatientResponse.Summary> getAll(String query, Pageable pageable, UserPrincipal principal) {
@@ -165,8 +162,8 @@ public class PatientService {
         }
         Center center = centerRepository.findById(centerId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
-        patientCenterRepository.save(PatientCenter.builder().patient(patient).center(center).build());
-        return PatientResponse.Detail.from(patientRepository.findById(patient.getId()).orElseThrow());
+        patientCenterRepository.save(patient.addCenter(center));
+        return PatientResponse.Detail.from(patient);
     }
 
     private void checkPatientAccess(Patient patient, UserPrincipal principal) {

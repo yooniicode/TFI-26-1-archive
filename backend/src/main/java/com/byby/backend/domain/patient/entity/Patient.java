@@ -4,6 +4,7 @@ import com.byby.backend.common.entity.BaseEntity;
 import com.byby.backend.common.enums.Gender;
 import com.byby.backend.common.enums.Nationality;
 import com.byby.backend.common.enums.VisaType;
+import com.byby.backend.domain.center.entity.Center;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -82,5 +83,14 @@ public class Patient extends BaseEntity {
 
     public void unlinkAuthUser() {
         this.authUserId = null;
+    }
+
+    public PatientCenter addCenter(Center center) {
+        PatientCenter patientCenter = PatientCenter.builder()
+                .patient(this)
+                .center(center)
+                .build();
+        this.patientCenters.add(patientCenter);
+        return patientCenter;
     }
 }

@@ -15,7 +15,6 @@ import com.byby.backend.domain.interpreter.entity.Interpreter;
 import com.byby.backend.domain.interpreter.repository.InterpreterRepository;
 import com.byby.backend.domain.auth.dto.AuthRequest;
 import com.byby.backend.domain.patient.entity.Patient;
-import com.byby.backend.domain.patient.entity.PatientCenter;
 import com.byby.backend.domain.patient.repository.PatientCenterRepository;
 import com.byby.backend.domain.patient.repository.PatientRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -66,6 +65,7 @@ public class AuthService {
     @Value("${byby.admin.bootstrap-code:}")
     private String adminBootstrapCode;
 
+    @Transactional
     public AuthResponse.Me getMe(UserPrincipal principal) {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
 
@@ -91,6 +91,7 @@ public class AuthService {
             var patient = patientRepository.findByAuthUserId(principal.getAuthUserId());
             if (patient.isPresent()) {
                 var p = patient.get();
+                ensurePatientCenterFromSignupMetadata(p, principal.getAuthUserId());
                 return new AuthResponse.Me(principal.getAuthUserId(), UserRole.patient, p.getName(), p.getId());
             }
         } else {
@@ -106,6 +107,7 @@ public class AuthService {
             var patient = patientRepository.findByAuthUserId(principal.getAuthUserId());
             if (patient.isPresent()) {
                 var p = patient.get();
+                ensurePatientCenterFromSignupMetadata(p, principal.getAuthUserId());
                 return new AuthResponse.Me(principal.getAuthUserId(), UserRole.patient, p.getName(), p.getId());
             }
         }
@@ -648,11 +650,15 @@ public class AuthService {
     }
 
     private void registerPatientProfile(AuthRequest.RegisterProfile req, UserPrincipal principal) {
-        if (patientRepository.existsByAuthUserId(principal.getAuthUserId())) return;
         if (req.centerId() == null) {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST, "centerId is required for patient");
         }
         Center center = centerService.find(req.centerId());
+        Optional<Patient> registeredPatient = patientRepository.findByAuthUserId(principal.getAuthUserId());
+        if (registeredPatient.isPresent()) {
+            addPatientCenterIfMissing(registeredPatient.get(), center);
+            return;
+        }
         Optional<Patient> existingPatient = findClaimablePatient(req);
         if (existingPatient.isPresent()) {
             Patient patient = existingPatient.get();
@@ -680,11 +686,16 @@ public class AuthService {
 
     private void addPatientCenterIfMissing(Patient patient, Center center) {
         if (!patientCenterRepository.existsByPatientIdAndCenterId(patient.getId(), center.getId())) {
-            patientCenterRepository.save(PatientCenter.builder()
-                    .patient(patient)
-                    .center(center)
-                    .build());
+            patientCenterRepository.save(patient.addCenter(center));
         }
+    }
+
+    private void ensurePatientCenterFromSignupMetadata(Patient patient, UUID authUserId) {
+        if (!patientCenterRepository.findByPatientId(patient.getId()).isEmpty()) return;
+        findSupabaseUser(authUserId)
+                .map(user -> user.path("user_metadata"))
+                .map(this::resolveRequestedCenter)
+                .ifPresent(center -> addPatientCenterIfMissing(patient, center));
     }
 
     private Optional<Patient> findClaimablePatient(AuthRequest.RegisterProfile req) {

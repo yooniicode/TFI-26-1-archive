@@ -35,6 +35,19 @@ CREATE TABLE center (
 
 CREATE INDEX idx_center_name ON center(name);
 
+-- Patient-center affiliation join table
+CREATE TABLE patient_center (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID      NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
+    center_id  UUID      NOT NULL REFERENCES center(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_patient_center_patient_center UNIQUE (patient_id, center_id)
+);
+
+CREATE INDEX idx_patient_center_patient_id ON patient_center(patient_id);
+CREATE INDEX idx_patient_center_center_id ON patient_center(center_id);
+
 -- 통번역가 (Interpreter)
 CREATE TABLE interpreter (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -295,8 +308,8 @@ DECLARE
     t TEXT;
 BEGIN
     FOREACH t IN ARRAY ARRAY['patient','center','interpreter','admin_profile','admin_work_log',
-                              'hospital','consultation','handover','center_patient_memo','center_announcement',
-                              'patient_match','medical_script','chat_room']
+                              'patient_center','hospital','consultation','handover','center_patient_memo',
+                              'center_announcement','patient_match','medical_script','chat_room']
     LOOP
         EXECUTE format(
             'CREATE TRIGGER trg_%s_updated_at
