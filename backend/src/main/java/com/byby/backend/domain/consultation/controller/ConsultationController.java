@@ -3,7 +3,6 @@ package com.byby.backend.domain.consultation.controller;
 import com.byby.backend.common.response.Response;
 import com.byby.backend.common.response.code.SuccessCode;
 import com.byby.backend.common.security.UserPrincipal;
-import com.byby.backend.domain.consultation.service.GoogleSheetsExportService;
 import com.byby.backend.domain.consultation.dto.ConsultationRequest;
 import com.byby.backend.domain.consultation.dto.ConsultationResponse;
 import com.byby.backend.domain.consultation.service.ConsultationService;
@@ -29,7 +28,6 @@ import java.util.UUID;
 public class ConsultationController {
 
     private final ConsultationService consultationService;
-    private final GoogleSheetsExportService googleSheetsExportService;
 
     @PostMapping("/request")
     @PreAuthorize("hasRole('patient')")
@@ -130,16 +128,17 @@ public class ConsultationController {
     @GetMapping("/export")
     @PreAuthorize("hasAnyRole('interpreter', 'admin')")
     @Operation(summary = "상담/통역 보고서 구글 시트로 내보내기",
-            description = "내 상담 보고서 전체를 Google Sheets 에 작성하고 URL 을 반환합니다. (최대 5,000건)")
-    public ResponseEntity<Response<String>> exportToSheets(@AuthenticationPrincipal UserPrincipal principal) {
-        ConsultationService.ExportData exportData = consultationService.getExportData(principal);
-        GoogleSheetsExportService.ExportResult result = googleSheetsExportService.createSheet(
-                "상담보고서", exportData.centerName(), exportData.existingSpreadsheetId(), exportData.rows());
-        // 새 스프레드시트가 생성된 경우 센터에 ID 저장
-        if (exportData.existingSpreadsheetId() == null) {
-            consultationService.saveCenterSpreadsheetId(exportData.centerId(), result.spreadsheetId());
-        }
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, result.url()));
+            description = """
+                    내 상담 보고서 전체를 Google Sheets 에 작성하고 URL 을 반환합니다. (최대 5,000건)
+
+                    구글(제3자)로 나가는 데이터이므로 **기본적으로 실명·생년월일·사업장을 마스킹**합니다.
+                    원본이 필요하면 `unmasked=true` 를 명시하세요 — 접속기록에 제3자 제공으로 남습니다.
+                    """)
+    public ResponseEntity<Response<String>> exportToSheets(
+            @RequestParam(defaultValue = "false") boolean unmasked,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(Response.success(SuccessCode.OK,
+                consultationService.exportToSheets(unmasked, principal)));
     }
 
     @GetMapping("/interpreter/{interpreterId}")

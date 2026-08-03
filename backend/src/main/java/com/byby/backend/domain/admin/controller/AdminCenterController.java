@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -56,9 +57,16 @@ public class AdminCenterController {
 
     @PostMapping("/sheet/export")
     @Operation(summary = "AD-03 센터 전체 보고서를 구글 시트로 내보내기",
-            description = "센터에 연결된 시트가 없으면 새로 생성하고 ID를 저장합니다.")
+            description = """
+                    센터에 연결된 시트가 없으면 새로 생성하고 ID를 저장합니다.
+
+                    구글(제3자)로 나가는 데이터이므로 **기본적으로 실명·생년월일·사업장을 마스킹**합니다.
+                    원본이 필요하면 `unmasked=true` 를 명시하세요 — 접속기록에 제3자 제공으로 남습니다.
+                    """)
     public ResponseEntity<Response<AdminCenterResponse.SheetLink>> exportSheet(
+            @RequestParam(defaultValue = "false") boolean unmasked,
             @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, adminCenterService.exportToSheet(principal)));
+        return ResponseEntity.ok(Response.success(SuccessCode.OK,
+                adminCenterService.exportToSheet(unmasked, principal)));
     }
 }
