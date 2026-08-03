@@ -67,4 +67,38 @@ public interface InterpreterRepository extends JpaRepository<Interpreter, UUID> 
             @Param("query") String query,
             @Param("language") String language,
             Pageable pageable);
+
+    /**
+     * AD-05-1 통번역가 관리 목록 — 비활성 통번역가도 포함해서 조회한다.
+     * activeFilter: "all" | "true" | "false"
+     */
+    @Query("""
+            SELECT DISTINCT i FROM Interpreter i
+            LEFT JOIN i.languages language
+            WHERE i.center.id = :centerId
+              AND (
+                  :activeFilter = 'all'
+                  OR (:activeFilter = 'true' AND i.active = true)
+                  OR (:activeFilter = 'false' AND i.active = false)
+              )
+              AND (
+                  :query IS NULL
+                  OR :query = ''
+                  OR LOWER(i.name) LIKE LOWER(CONCAT('%', :query, '%'))
+                  OR LOWER(COALESCE(i.phone, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+              AND (
+                  :language IS NULL
+                  OR :language = ''
+                  OR LOWER(COALESCE(language, '')) = LOWER(:language)
+              )
+            """)
+    Page<Interpreter> searchByCenterForAdmin(
+            @Param("centerId") UUID centerId,
+            @Param("query") String query,
+            @Param("language") String language,
+            @Param("activeFilter") String activeFilter,
+            Pageable pageable);
+
+    long countByCenter_Id(UUID centerId);
 }

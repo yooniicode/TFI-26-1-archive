@@ -73,7 +73,7 @@ public class ConsultationController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('interpreter')")
+    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
     @Operation(summary = "상담/통역 보고서 목록 조회")
     public ResponseEntity<Response<List<ConsultationResponse.Summary>>> getAll(
             @RequestParam(required = false) String patientQuery,
@@ -84,7 +84,7 @@ public class ConsultationController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('interpreter', 'patient')")
+    @PreAuthorize("hasAnyRole('interpreter', 'patient', 'admin')")
     @Operation(summary = "상담/통역 보고서 상세 조회")
     public ResponseEntity<Response<Object>> getById(
             @PathVariable UUID id,
@@ -94,7 +94,7 @@ public class ConsultationController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('interpreter')")
+    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
     @Operation(summary = "상담/통역 보고서 수정")
     public ResponseEntity<Response<ConsultationResponse.Detail>> update(
             @PathVariable UUID id,
@@ -105,8 +105,9 @@ public class ConsultationController {
     }
 
     @PatchMapping("/{id}/confirm")
-    @PreAuthorize("hasRole('patient')")
-    @Operation(summary = "상담/통역 보고서 확인 처리")
+    @PreAuthorize("hasRole('admin')")
+    @Operation(summary = "상담/통역 보고서 확인 처리 (센터장)",
+            description = "승인 워크플로는 `/api/v1/admin/reports/{id}/approve` 를 사용하세요. 이 엔드포인트는 확인자 정보를 직접 기입할 때 사용합니다.")
     public ResponseEntity<Response<ConsultationResponse.Detail>> confirm(
             @PathVariable UUID id,
             @Valid @RequestBody ConsultationRequest.Confirm req,
@@ -116,7 +117,7 @@ public class ConsultationController {
     }
 
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyRole('interpreter', 'patient')")
+    @PreAuthorize("hasAnyRole('interpreter', 'patient', 'admin')")
     @Operation(summary = "환자별 상담/통역 보고서 조회")
     public ResponseEntity<Response<List<ConsultationResponse.Detail>>> getByPatient(
             @PathVariable UUID patientId,
@@ -142,7 +143,7 @@ public class ConsultationController {
     }
 
     @GetMapping("/interpreter/{interpreterId}")
-    @PreAuthorize("hasRole('interpreter')")
+    @PreAuthorize("hasAnyRole('interpreter', 'admin')")
     @Operation(summary = "통번역가별 상담/통역 보고서 조회")
     public ResponseEntity<Response<List<ConsultationResponse.Summary>>> getByInterpreter(
             @PathVariable UUID interpreterId,

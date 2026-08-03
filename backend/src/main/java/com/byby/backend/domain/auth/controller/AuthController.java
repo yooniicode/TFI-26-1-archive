@@ -109,35 +109,16 @@ public class AuthController {
         return ResponseEntity.status(201).body(Response.success(SuccessCode.CREATED));
     }
 
-    /*
-     * Admin bootstrap/member-management endpoints disabled.
-     *
+    /** 센터에 관리자 계정이 하나도 없을 때만 사용하는 초기 승격 경로. 구성원 권한 관리는 /api/v1/admin/members 를 사용합니다. */
     @PostMapping("/bootstrap-admin")
-    @Operation(summary = "최초 센터 직원 계정 생성", description = "승인 가능한 센터 직원이 아직 없을 때 현재 로그인 사용자를 최초 센터 직원으로 승격합니다.")
+    @Operation(summary = "최초 센터장 계정 생성",
+            description = "센터장 계정이 아직 하나도 없을 때 현재 로그인 사용자를 최초 센터장으로 승격합니다. "
+                    + "환경변수 ADMIN_BOOTSTRAP_CODE 와 일치하는 secretCode 가 필요합니다.")
     public ResponseEntity<Response<AuthResponse.Me>> bootstrapAdmin(
             @Valid @RequestBody AuthRequest.BootstrapAdmin req,
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.bootstrapAdmin(req, principal)));
     }
-
-    @GetMapping("/members")
-    @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "비이주민 회원 목록 조회")
-    public ResponseEntity<Response<List<AuthResponse.Member>>> getNonPatientMembers(
-            @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.getNonPatientMembers(principal)));
-    }
-
-    @PatchMapping("/members/{authUserId}/role")
-    @PreAuthorize("hasRole('admin')")
-    @Operation(summary = "비이주민 회원 역할 변경")
-    public ResponseEntity<Response<AuthResponse.Member>> updateMemberRole(
-            @PathVariable UUID authUserId,
-            @Valid @RequestBody AuthRequest.UpdateMemberRole req,
-            @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.updateMemberRole(authUserId, req, principal)));
-    }
-    */
 
     @PatchMapping("/me/avatar")
     @PreAuthorize("isAuthenticated()")
