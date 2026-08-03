@@ -60,6 +60,11 @@ byby:
       secret: ${JWT_SECRET:local-secret-for-dev-only-MUST-override-in-production}
       expiration-ms: 86400000
     swagger-secret: ${SWAGGER_SECRET:}
+    # JWT는 httpOnly 쿠키로 전달한다. 프론트가 /api/v1/* 를 동일 출처로 리라이트하므로 Lax 로 충분하다.
+    cookie:
+      secure: ${AUTH_COOKIE_SECURE:true}
+      same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+    require-https: ${REQUIRE_HTTPS:true}
     cors:
       allowed-origins:
         - http://localhost:3000
@@ -115,6 +120,13 @@ spring:
     hibernate:
       ddl-auto: update
 
+byby:
+  security:
+    # 로컬은 http 로 띄우므로 HTTPS 강제와 Secure 쿠키를 끈다
+    require-https: false
+    cookie:
+      secure: false
+
 logging:
   level:
     com.byby: DEBUG
@@ -139,7 +151,9 @@ spring:
       keepalive-time: 30000        # 30초 keepalive ping
       validation-timeout: 5000
       data-source-properties:
-        sslmode: require
+        # verify-full: 서버 인증서와 호스트명까지 검증 (require 는 암호화만 하고 검증을 안 해 MITM 에 취약).
+        # 배포 환경 인증서 문제로 기동이 막히면 DB_SSLMODE=require 로 즉시 되돌릴 수 있다.
+        sslmode: ${DB_SSLMODE:verify-full}
         sslrootcert: system
         prepareThreshold: 0        # PgBouncer Transaction Mode: 서버 측 Prepared Statement 금지
         socketTimeout: 60          # JDBC 소켓 응답 대기 60초 (초 단위)

@@ -4,6 +4,7 @@ import com.byby.backend.common.response.Response;
 import com.byby.backend.common.response.code.SuccessCode;
 import com.byby.backend.common.exception.GeneralException;
 import com.byby.backend.common.response.code.GeneralErrorCode;
+import com.byby.backend.common.security.AuthCookieManager;
 import com.byby.backend.common.security.UserPrincipal;
 import com.byby.backend.domain.auth.dto.AuthRequest;
 import com.byby.backend.domain.auth.dto.AuthResponse;
@@ -12,6 +13,7 @@ import com.byby.backend.domain.auth.service.KakaoOAuthService;
 import com.byby.backend.domain.auth.service.OctomoVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,19 +30,24 @@ public class AuthController {
     private final AuthService authService;
     private final KakaoOAuthService kakaoOAuthService;
     private final OctomoVerificationService octomoVerificationService;
+    private final AuthCookieManager authCookieManager;
 
     @PostMapping("/login")
-    @Operation(summary = "이메일/비밀번호 로그인")
+    @Operation(summary = "이메일/비밀번호 로그인",
+            description = "JWT를 httpOnly 쿠키로 내려줍니다. 응답 body 의 token 은 Swagger·네이티브 클라이언트 호환용입니다.")
     public ResponseEntity<Response<AuthResponse.TokenMe>> login(
-            @Valid @RequestBody AuthRequest.Login req) {
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.login(req)));
+            @Valid @RequestBody AuthRequest.Login req,
+            HttpServletResponse response) {
+        return ResponseEntity.ok(Response.success(SuccessCode.OK, issue(authService.login(req), response)));
     }
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입 + 프로필 즉시 생성")
     public ResponseEntity<Response<AuthResponse.TokenMe>> signup(
-            @Valid @RequestBody AuthRequest.Signup req) {
-        return ResponseEntity.status(201).body(Response.success(SuccessCode.CREATED, authService.signup(req)));
+            @Valid @RequestBody AuthRequest.Signup req,
+            HttpServletResponse response) {
+        return ResponseEntity.status(201)
+                .body(Response.success(SuccessCode.CREATED, issue(authService.signup(req), response)));
     }
 
     @PostMapping("/kakao")
@@ -51,18 +58,28 @@ public class AuthController {
     )
     public ResponseEntity<Response<AuthResponse.TokenMe>> kakaoLogin(
             @RequestParam String code,
-            @RequestParam(required = false) String redirectUri) {
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, kakaoOAuthService.loginWithCode(code, redirectUri)));
+            @RequestParam(required = false) String redirectUri,
+            HttpServletResponse response) {
+        return ResponseEntity.ok(Response.success(SuccessCode.OK,
+                issue(kakaoOAuthService.loginWithCode(code, redirectUri), response)));
     }
 
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "로그아웃", description = "현재 계정의 기존 JWT 세션을 모두 만료시킵니다.")
     public ResponseEntity<Response<Void>> logout(
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @AuthenticationPrincipal UserPrincipal principal,
+            HttpServletResponse response) {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
         authService.logout(principal.getAuthUserId());
+        authCookieManager.clear(response);
         return ResponseEntity.ok(Response.success(SuccessCode.OK));
+    }
+
+    /** 발급된 토큰을 httpOnly 쿠키로 심는다. */
+    private AuthResponse.TokenMe issue(AuthResponse.TokenMe tokenMe, HttpServletResponse response) {
+        authCookieManager.write(response, tokenMe.token());
+        return tokenMe;
     }
 
     @PostMapping("/register-admin")
@@ -71,8 +88,10 @@ public class AuthController {
         description = "UI 미노출 — API + secretCode 로만 가입 가능. 환경변수 ADMIN_BOOTSTRAP_CODE 와 일치해야 합니다."
     )
     public ResponseEntity<Response<AuthResponse.TokenMe>> registerAdmin(
-            @Valid @RequestBody AuthRequest.AdminSignup req) {
-        return ResponseEntity.status(201).body(Response.success(SuccessCode.CREATED, authService.registerAdmin(req)));
+            @Valid @RequestBody AuthRequest.AdminSignup req,
+            HttpServletResponse response) {
+        return ResponseEntity.status(201)
+                .body(Response.success(SuccessCode.CREATED, issue(authService.registerAdmin(req), response)));
     }
 
     @GetMapping("/me")
@@ -94,9 +113,12 @@ public class AuthController {
     @Operation(summary = "비밀번호 변경")
     public ResponseEntity<Response<Void>> changePassword(
             @Valid @RequestBody AuthRequest.ChangePassword req,
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @AuthenticationPrincipal UserPrincipal principal,
+            HttpServletResponse response) {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
         authService.changePassword(req, principal.getAuthUserId());
+        // 비밀번호 변경은 기존 세션을 모두 무효화하므로 현재 쿠키도 함께 정리해 재로그인을 유도한다
+        authCookieManager.clear(response);
         return ResponseEntity.ok(Response.success(SuccessCode.OK));
     }
 
@@ -135,9 +157,11 @@ public class AuthController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "회원 탈퇴")
     public ResponseEntity<Response<Void>> deleteAccount(
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @AuthenticationPrincipal UserPrincipal principal,
+            HttpServletResponse response) {
         if (principal == null) throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
         authService.deleteAccount(principal.getAuthUserId());
+        authCookieManager.clear(response);
         return ResponseEntity.ok(Response.success(SuccessCode.OK));
     }
 
@@ -161,22 +185,26 @@ public class AuthController {
     @PostMapping("/phone/login")
     @Operation(summary = "전화번호 로그인", description = "OCTOMO 인증 후 기존 계정이면 JWT 발급, 신규면 exists=false 반환 (5분 내 /phone/signup 호출 가능).")
     public ResponseEntity<Response<AuthResponse.PhoneLoginResult>> phoneLogin(
-            @Valid @RequestBody AuthRequest.PhoneVerify req) {
+            @Valid @RequestBody AuthRequest.PhoneVerify req,
+            HttpServletResponse response) {
         boolean verified = octomoVerificationService.verifyCode(req.phone(), req.code());
         if (!verified) {
             throw new com.byby.backend.common.exception.GeneralException(
                     com.byby.backend.common.response.code.GeneralErrorCode.UNAUTHORIZED,
                     "인증에 실패했습니다. 문자를 보낸 후 다시 시도해주세요.");
         }
-        return ResponseEntity.ok(Response.success(SuccessCode.OK, authService.loginByPhone(req.phone())));
+        AuthResponse.PhoneLoginResult result = authService.loginByPhone(req.phone());
+        if (result.token() != null) authCookieManager.write(response, result.token());
+        return ResponseEntity.ok(Response.success(SuccessCode.OK, result));
     }
 
     @PostMapping("/phone/signup")
     @Operation(summary = "전화번호 전용 회원가입", description = "/phone/login에서 exists=false 받은 후 5분 내 호출. 이름·역할·센터 정보 필요.")
     public ResponseEntity<Response<AuthResponse.TokenMe>> phoneSignup(
-            @Valid @RequestBody AuthRequest.PhoneSignup req) {
+            @Valid @RequestBody AuthRequest.PhoneSignup req,
+            HttpServletResponse response) {
         return ResponseEntity.status(201).body(Response.success(SuccessCode.CREATED,
-                authService.phoneSignup(req)));
+                issue(authService.phoneSignup(req), response)));
     }
 
     @GetMapping("/linked-accounts")

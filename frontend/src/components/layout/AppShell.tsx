@@ -12,7 +12,7 @@ import { getNavItems } from '@/components/layout/navItems'
 import { useLayoutMode } from '@/hooks/useLayoutMode'
 import { useMe } from '@/hooks/useMe'
 import { authApi, chatApi } from '@/lib/api'
-import { clearAccessToken } from '@/lib/auth/auth-token'
+import { clearAuthState } from '@/lib/auth/auth-token'
 import { useTranslation } from '@/lib/i18n/I18nContext'
 import { queryKeys } from '@/lib/queryKeys'
 import type { AuthMe } from '@/lib/types'
@@ -200,7 +200,7 @@ export default function AppShell({ children, noPadding = false }: { children: Re
     } catch {
       // 토큰이 이미 만료된 경우에도 클라이언트 세션은 정리한다.
     } finally {
-      clearAccessToken()
+      clearAuthState()
       queryClient.clear()
       router.replace('/')
       router.refresh()
