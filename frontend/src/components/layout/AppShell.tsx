@@ -174,10 +174,11 @@ export default function AppShell({ children, noPadding = false }: { children: Re
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const pendingApprovals = 0
+  const hasCompletedProfile = !!me && (me.role !== 'patient' || !!me.entityId)
   const { data: unreadData } = useQuery({
     queryKey: queryKeys.chat.unreadCount(),
     queryFn: () => chatApi.unreadCount().then(r => r.payload?.total ?? 0),
-    enabled: !!me,
+    enabled: hasCompletedProfile,
     refetchInterval: 30000,
   })
   const unreadChatCount = unreadData ?? 0

@@ -34,8 +34,8 @@ export default function DashboardPage() {
   const isAdmin = me?.role === 'admin'
   const hasCenter = isAdmin && !!(me?.centerId || me?.centerName)
   const canViewConsultations = me?.role === 'interpreter'
-  const canLoadAnnouncements = me?.role === 'patient' || isAdmin
   const isPatientWithEntity = me?.role === 'patient' && !!me.entityId
+  const canLoadAnnouncements = isPatientWithEntity || isAdmin
   const isInterpreter = me?.role === 'interpreter'
 
   const [announcementCategory, setAnnouncementCategory] = useState<AnnouncementCategory>('NOTICE')

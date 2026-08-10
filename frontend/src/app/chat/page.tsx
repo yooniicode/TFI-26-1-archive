@@ -13,11 +13,12 @@ import type { ChatRoom } from '@/lib/types'
 export default function ChatListPage() {
   const { t } = useTranslation()
   const { data: me, isLoading: meLoading } = useMe()
+  const hasCompletedProfile = !!me && (me.role !== 'patient' || !!me.entityId)
 
   const { data: rooms = [], isLoading } = useQuery({
     queryKey: queryKeys.chat.rooms(),
     queryFn: () => chatApi.rooms().then(r => r.payload ?? []),
-    enabled: !!me,
+    enabled: hasCompletedProfile,
     refetchInterval: 15000,
   })
 
