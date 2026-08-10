@@ -6,6 +6,8 @@ import AppShell from '@/components/layout/AppShell'
 import PageHeader from '@/components/ui/PageHeader'
 import { useMe } from '@/hooks/useMe'
 import { patientApi } from '@/lib/api'
+import { useTranslation } from '@/lib/i18n/I18nContext'
+import type { AppTranslation } from '@/lib/i18n/ko'
 
 function PhoneIcon({ size = 24, color = '#2592FF' }: { size?: number; color?: string }) {
   return (
@@ -52,109 +54,95 @@ function ChevronUp() {
   )
 }
 
-const NATIONALITY_LANG: Record<string, { flag: string; text: string }> = {
-  VIETNAM:       { flag: '🇻🇳', text: '베트남어로 전화가 가능해요' },
-  CHINA:         { flag: '🇨🇳', text: '중국어로 전화가 가능해요' },
-  CAMBODIA:      { flag: '🇰🇭', text: '캄보디아어로 전화가 가능해요' },
-  MYANMAR:       { flag: '🇲🇲', text: '미얀마어로 전화가 가능해요' },
-  PHILIPPINES:   { flag: '🇵🇭', text: '필리핀어로 전화가 가능해요' },
-  INDONESIA:     { flag: '🇮🇩', text: '인도네시아어로 전화가 가능해요' },
-  THAILAND:      { flag: '🇹🇭', text: '태국어로 전화가 가능해요' },
-  NEPAL:         { flag: '🇳🇵', text: '네팔어로 전화가 가능해요' },
-  MONGOLIA:      { flag: '🇲🇳', text: '몽골어로 전화가 가능해요' },
-  UZBEKISTAN:    { flag: '🇺🇿', text: '우즈베크어로 전화가 가능해요' },
-  SRI_LANKA:     { flag: '🇱🇰', text: '싱할라어로 전화가 가능해요' },
-  BANGLADESH:    { flag: '🇧🇩', text: '벵골어로 전화가 가능해요' },
-  PAKISTAN:      { flag: '🇵🇰', text: '우르두어로 전화가 가능해요' },
-  UNITED_STATES: { flag: '🇺🇸', text: '영어로 전화가 가능해요' },
+const NATIONALITY_FLAG: Record<string, string> = {
+  VIETNAM: '🇻🇳',
+  CHINA: '🇨🇳',
+  CAMBODIA: '🇰🇭',
+  MYANMAR: '🇲🇲',
+  PHILIPPINES: '🇵🇭',
+  INDONESIA: '🇮🇩',
+  THAILAND: '🇹🇭',
+  NEPAL: '🇳🇵',
+  MONGOLIA: '🇲🇳',
+  UZBEKISTAN: '🇺🇿',
+  SRI_LANKA: '🇱🇰',
+  BANGLADESH: '🇧🇩',
+  PAKISTAN: '🇵🇰',
+  UNITED_STATES: '🇺🇸',
 }
+
+type ContactKey = keyof AppTranslation['emergency']['contacts']
 
 interface EmergencyContact {
   id: string
-  name: string
+  key: ContactKey
   number: string
-  hoursLabel?: string
   hoursRange?: { startHour: number; endHour: number; weekdayOnly?: boolean }
-  category?: string
   supportedNationalities?: string[]
-  interpreterNote?: string
   hasSms: boolean
 }
 
 const CONTACTS: EmergencyContact[] = [
   {
     id: '119',
-    name: '응급·화재 신고',
+    key: 'fire',
     number: '119',
-    hoursLabel: '24시간 365일',
     // 119 다국어 통역 서비스: 11~14개 언어 지원
     supportedNationalities: [
       'VIETNAM', 'CHINA', 'UNITED_STATES', 'MONGOLIA', 'CAMBODIA',
       'MYANMAR', 'PHILIPPINES', 'INDONESIA', 'THAILAND', 'NEPAL',
       'UZBEKISTAN', 'BANGLADESH', 'PAKISTAN', 'SRI_LANKA',
     ],
-    interpreterNote: '11~14개 언어 통역 지원 (지역별 상이) · SMS·앱·수어 신고 가능',
     hasSms: true,
   },
   {
     id: '112',
-    name: '범죄·경찰 신고',
+    key: 'police',
     number: '112',
-    hoursLabel: '24시간 365일',
     // 영어·중국어 전담, 그 외 언어 3자 통화 연결
     supportedNationalities: [
       'UNITED_STATES', 'CHINA', 'VIETNAM', 'MONGOLIA', 'CAMBODIA',
       'MYANMAR', 'PHILIPPINES', 'INDONESIA', 'THAILAND', 'NEPAL',
       'UZBEKISTAN', 'BANGLADESH', 'PAKISTAN',
     ],
-    interpreterNote: '영어·중국어 전담 24시간 · 베트남어 등 기타 언어 3자 통화 연결',
     hasSms: true,
   },
   {
     id: '1339',
-    name: '응급의료 안내',
+    key: 'medicalInfo',
     number: '1339',
-    hoursLabel: '24시간 365일',
-    interpreterNote: '외국어 직접 상담 없음 · 1330/1345 통해 3자 통화 연결',
     hasSms: false,
   },
   {
     id: '1577-1366',
-    name: '다누리 콜센터',
+    key: 'danuri',
     number: '1577-1366',
-    hoursLabel: '365일 24시간',
     // 다누리 13개 언어 지원
     supportedNationalities: [
       'VIETNAM', 'CHINA', 'UNITED_STATES', 'MONGOLIA', 'CAMBODIA',
       'MYANMAR', 'PHILIPPINES', 'INDONESIA', 'THAILAND', 'NEPAL',
       'UZBEKISTAN', 'BANGLADESH',
     ],
-    interpreterNote: '13개 언어 지원 · 베트남어, 중국어, 영어, 몽골어, 러시아어 등',
     hasSms: false,
   },
   {
     id: '1345',
-    name: '출입국·이민 안내',
+    key: 'immigration',
     number: '1345',
-    hoursLabel: '평일 09:00~22:00',
     hoursRange: { startHour: 9, endHour: 22, weekdayOnly: true },
-    category: '출입국·생활 정보',
     // 1345: 20개 언어 지원
     supportedNationalities: [
       'VIETNAM', 'CHINA', 'UNITED_STATES', 'MONGOLIA', 'CAMBODIA',
       'MYANMAR', 'PHILIPPINES', 'INDONESIA', 'THAILAND', 'NEPAL',
       'UZBEKISTAN', 'BANGLADESH', 'PAKISTAN', 'SRI_LANKA',
     ],
-    interpreterNote: '20개 언어 지원 · 18시 이후 영어·중국어·한국어만',
     hasSms: false,
   },
   {
     id: 'nhis',
-    name: '국민건강보험 외국인 상담',
+    key: 'nhis',
     number: '1588-1250',
-    hoursLabel: '평일 09:00~18:00',
     hoursRange: { startHour: 9, endHour: 18, weekdayOnly: true },
-    category: '건강보험 안내',
     hasSms: false,
   },
 ]
@@ -173,18 +161,25 @@ function CallItem({
   isExpanded,
   onToggle,
   userNationality,
+  t,
 }: {
   contact: EmergencyContact
   isExpanded: boolean
   onToggle: () => void
   userNationality?: string | null
+  t: AppTranslation
 }) {
   const numDialable = contact.number.replace(/-/g, '')
-  const interpretation =
-    userNationality &&
-    contact.supportedNationalities?.includes(userNationality)
-      ? NATIONALITY_LANG[userNationality]
-      : undefined
+  const info = t.emergency.contacts[contact.key]
+  const supported = userNationality && contact.supportedNationalities?.includes(userNationality)
+  const interpretation = supported
+    ? {
+        flag: NATIONALITY_FLAG[userNationality],
+        text: t.emergency.call_available_in(t.emergency.language_names[userNationality as keyof typeof t.emergency.language_names]),
+      }
+    : undefined
+  const category = 'category' in info ? info.category : undefined
+  const interpreterNote = 'interpreterNote' in info ? info.interpreterNote : undefined
 
   if (!isExpanded) {
     return (
@@ -194,7 +189,7 @@ function CallItem({
           onClick={onToggle}
           className="flex flex-col items-start justify-center gap-[2px] flex-1 min-w-0 active:opacity-70 transition-opacity text-left"
         >
-          <p className="text-[20px] font-semibold text-[#161616] leading-[1.4]">{contact.name}</p>
+          <p className="text-[20px] font-semibold text-[#161616] leading-[1.4]">{info.name}</p>
           {interpretation && (
             <div className="flex items-center gap-[2px]">
               <span className="text-[16px] leading-none">{interpretation.flag}</span>
@@ -207,7 +202,7 @@ function CallItem({
             href={`tel:${numDialable}`}
             onClick={e => e.stopPropagation()}
             className="bg-[#f3f9ff] p-[6px] rounded-full flex items-center justify-center active:opacity-70 transition-opacity"
-            aria-label={`${contact.name} 전화하기`}
+            aria-label={`${info.name} ${t.emergency.call_action}`}
           >
             <PhoneIcon size={34} color="#2592FF" />
           </a>
@@ -222,7 +217,7 @@ function CallItem({
   return (
     <div className="flex flex-col gap-[16px] py-[24px] border-b border-[#eee]">
       <div className="flex items-center justify-between w-full">
-        <p className="text-[20px] font-semibold text-[#161616] leading-[1.4] flex-1 min-w-0 pr-4">{contact.name}</p>
+        <p className="text-[20px] font-semibold text-[#161616] leading-[1.4] flex-1 min-w-0 pr-4">{info.name}</p>
         <button type="button" onClick={onToggle} className="shrink-0 active:opacity-70 transition-opacity">
           <ChevronUp />
         </button>
@@ -235,19 +230,17 @@ function CallItem({
             <p className="text-[16px] font-medium text-[#808080] leading-[1.4] ml-1">{interpretation.text}</p>
           </div>
         )}
-        {contact.hoursLabel && (
-          <div className="flex items-center gap-[4px] text-[16px] font-medium text-[#808080] leading-[1.4]">
-            <span>{contact.hoursLabel}</span>
-            {contact.category && (
-              <>
-                <span>|</span>
-                <span>{contact.category}</span>
-              </>
-            )}
-          </div>
-        )}
-        {contact.interpreterNote && (
-          <p className="text-[14px] font-medium text-[#808080] leading-[1.5]">{contact.interpreterNote}</p>
+        <div className="flex items-center gap-[4px] text-[16px] font-medium text-[#808080] leading-[1.4]">
+          <span>{info.hoursLabel}</span>
+          {category && (
+            <>
+              <span>|</span>
+              <span>{category}</span>
+            </>
+          )}
+        </div>
+        {interpreterNote && (
+          <p className="text-[14px] font-medium text-[#808080] leading-[1.5]">{interpreterNote}</p>
         )}
       </div>
 
@@ -256,7 +249,7 @@ function CallItem({
           <a
             href={`sms:${numDialable}`}
             className="bg-[#f0f1f5] h-[52px] w-[80px] rounded-[40px] flex items-center justify-center shrink-0 active:opacity-70 transition-opacity"
-            aria-label={`${contact.name} 문자하기`}
+            aria-label={`${info.name} ${t.emergency.sms_action}`}
           >
             <MessageIcon />
           </a>
@@ -264,7 +257,7 @@ function CallItem({
         <a
           href={`tel:${numDialable}`}
           className="bg-[#f3f9ff] flex-1 h-[52px] rounded-full flex gap-[4px] items-center justify-center active:opacity-70 transition-opacity"
-          aria-label={`${contact.name} 전화하기`}
+          aria-label={`${info.name} ${t.emergency.call_action}`}
         >
           <PhoneIcon size={28} color="#2592FF" />
           <p className="text-[22px] font-semibold text-[#2592FF] leading-[1.4]">{contact.number}</p>
@@ -276,6 +269,7 @@ function CallItem({
 
 export default function EmergencyCallPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const { t } = useTranslation()
   const { data: me } = useMe()
   const { data: patient } = useQuery({
     queryKey: ['patients', me?.entityId],
@@ -292,12 +286,12 @@ export default function EmergencyCallPage() {
 
   return (
     <AppShell noPadding>
-      <PageHeader title="긴급전화" />
+      <PageHeader title={t.emergency.page_title} />
 
       <div className="bg-[#f6fff3] px-[16px] py-[20px] flex flex-col gap-[8px]">
-        <p className="text-[18px] font-semibold text-[#30c100] leading-normal">통역 서비스 안내</p>
+        <p className="text-[18px] font-semibold text-[#30c100] leading-normal">{t.emergency.banner_title}</p>
         <p className="text-[16px] font-medium text-[#161616] leading-[1.6]">
-          {'국기가 표시된 언어는 통역 서비스가 지원됩니다.\n전화 연결 후 외국어로 도움을 받을 수 있습니다.'}
+          {t.emergency.banner_desc}
         </p>
       </div>
 
@@ -305,7 +299,7 @@ export default function EmergencyCallPage() {
         {openContacts.length > 0 && (
           <>
             <p className="text-[20px] font-semibold text-[#161616] leading-[1.4] pt-[20px] pb-[4px]">
-              지금 통화할 수 있어요
+              {t.emergency.section_open}
             </p>
             {openContacts.map(contact => {
               const key = `open-${contact.id}`
@@ -316,15 +310,16 @@ export default function EmergencyCallPage() {
                   isExpanded={expandedId === key}
                   onToggle={() => toggleItem(key)}
                   userNationality={userNationality}
+                  t={t}
                 />
               )
             })}
-            <p className="text-[20px] font-semibold text-[#161616] leading-[1.4] pt-[28px] pb-[4px]">전체</p>
+            <p className="text-[20px] font-semibold text-[#161616] leading-[1.4] pt-[28px] pb-[4px]">{t.emergency.section_all}</p>
           </>
         )}
 
         {openContacts.length === 0 && (
-          <p className="text-[20px] font-semibold text-[#161616] leading-[1.4] pt-[20px] pb-[4px]">전체</p>
+          <p className="text-[20px] font-semibold text-[#161616] leading-[1.4] pt-[20px] pb-[4px]">{t.emergency.section_all}</p>
         )}
 
         {CONTACTS.map(contact => {
@@ -336,6 +331,7 @@ export default function EmergencyCallPage() {
               isExpanded={expandedId === key}
               onToggle={() => toggleItem(key)}
               userNationality={userNationality}
+              t={t}
             />
           )
         })}
